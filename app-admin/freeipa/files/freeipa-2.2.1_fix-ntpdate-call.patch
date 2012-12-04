@@ -1,0 +1,25 @@
+From 7ec3c9d6d3977e96022b46688b01bd19fb80ad4f Mon Sep 17 00:00:00 2001
+From: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+Date: Sun, 25 Nov 2012 08:15:01 +0100
+Subject: [PATCH] NTP arg '-U' doesn't exist on Gentoo, use unpriv port
+
+---
+ ipa-client/ipaclient/ntpconf.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ipa-client/ipaclient/ntpconf.py b/ipa-client/ipaclient/ntpconf.py
+index e71692f..71cc9ff 100644
+--- ipa-client/ipaclient/ntpconf.py
++++ ipa-client/ipaclient/ntpconf.py
+@@ -148,7 +148,7 @@ def synconce_ntp(server_fqdn):
+         # implementation
+         for retry in range(0,3):
+             try:
+-                ipautil.run([ntpdate, "-U", "ntp", "-s", "-b", server_fqdn])
++                ipautil.run([ntpdate, "-u", "-s", "-b", server_fqdn])
+                 result = True
+                 break
+             except:
+-- 
+1.7.11.7
+

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<use>
+		<flag name='fingerprint'> Add dependencies used for authentication via
+			fingerprint reader</flag>
+		<flag name='gtk'>Add dependencies used by the GTK+ based graphical
+			interface</flag>
+		<flag name='kerberos'>Add dependencies used for pam_krb5 authentication
+			</flag>
+		<flag name='ldap'>Add dependencies for user lookup or authentication
+			via LDAP</flag>
+		<flag name='sssd'>Add dependencies used for SSSD support</flag>
+		<flag name='smartcard'>Add dependencies used for smartcard
+			authentication</flag>
+		<flag name='winbind'>Add dependencies used for winbind authentication
+			</flag>
+	</use>
+</pkgmetadata>
+

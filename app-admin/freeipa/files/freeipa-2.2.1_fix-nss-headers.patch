@@ -1,0 +1,40 @@
+From d606888addfac35b0672be0644bdf4e276b9685a Mon Sep 17 00:00:00 2001
+From: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+Date: Sun, 2 Dec 2012 20:50:08 +0100
+Subject: [PATCH] fix nss header path
+
+---
+ util/ipa_pwd.c |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/util/ipa_pwd.c b/util/ipa_pwd.c
+index 92fb3b0..22248dd 100644
+--- util/ipa_pwd.c
++++ util/ipa_pwd.c
+@@ -25,10 +25,10 @@
+ #include <stdio.h>
+ #include <time.h>
+ #include <ctype.h>
+-#include <nss3/nss.h>
+-#include <nss3/nssb64.h>
+-#include <nss3/hasht.h>
+-#include <nss3/pk11pub.h>
++#include <nss/nss.h>
++#include <nss/nssb64.h>
++#include <nss/hasht.h>
++#include <nss/pk11pub.h>
+ #include <errno.h>
+ #include "ipa_pwd.h"
+ 
+@@ -157,7 +157,7 @@ static int ipapwd_gentime_cmp(const void *p1, const void *p2)
+ 
+ #define SHA_SALT_LENGTH 8
+ 
+-/* SHA*_LENGTH leghts come from nss3/hasht.h */
++/* SHA*_LENGTH leghts come from nss/hasht.h */
+ #define SHA_HASH_MAX_LENGTH SHA512_LENGTH
+ 
+ static int ipapwd_hash_type_to_alg(char *hash_type,
+-- 
+1.7.8.6
+

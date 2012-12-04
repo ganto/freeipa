@@ -1,0 +1,13 @@
+app-admin/authconfig:fingerprint - Add dependencies used for authentication via fingerprint reader
+app-admin/authconfig:gtk - Add dependencies used by the GTK+ based graphical interface
+app-admin/authconfig:kerberos - Add dependencies used for pam_krb5 authentication
+app-admin/authconfig:ldap - Add dependencies for user lookup or authentication via LDAP
+app-admin/authconfig:sssd - Add dependencies used for SSSD support
+app-admin/authconfig:smartcard - Add dependencies used for smartcard authentication
+app-admin/authconfig:winbind - Add dependencies used for winbind authentication
+app-admin/freeipa:autofs - Use net-fs/autofs for automatically mounting user's /home directories
+app-admin/freeipa:dns - Manage DNS records of FreeIPA clients/services
+app-admin/freeipa:minimal - Only install FreeIPA client
+app-admin/freeipa:nis - Add support for NIS netgroups
+app-admin/freeipa:ntp - Install support for net-misc/ntp
+app-admin/freeipa:systemd - Use SystemD init system instead of OpenRC

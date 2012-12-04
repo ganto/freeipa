@@ -1,0 +1,42 @@
+# HG changeset patch
+# User Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+# Date 1354228449 -3600
+# Branch gentoo
+# Node ID c103423dce5f778c4441fea2800c912d84980a84
+# Parent  6139fc51a770a93ea1e756b9251336bdad728cc0
+fix service calls for OpenRC
+
+diff -r 6139fc51a770 -r c103423dce5f authinfo.py
+--- authinfo.py	Fri Nov 16 16:11:42 2012 +0100
++++ authinfo.py	Thu Nov 29 23:34:09 2012 +0100
+@@ -783,24 +783,23 @@
+ 
+ class SysVInitService:
+ 	def start(self, service):
+-		os.system("/sbin/service " + service + " start")
++		os.system("/sbin/rc-service " + service + " start")
+ 
+ 	def stop(self, service):
+-		os.system("/sbin/service " + service + " stop >/dev/null 2>&1")
++		os.system("/sbin/rc-service " + service + " stop >/dev/null 2>&1")
+ 
+ 	def enable(self, service):
+-		os.system("/sbin/chkconfig --add " + service)
+-		os.system("/sbin/chkconfig --level 345 " + service + " on")
++		os.system("/sbin/rc-update add " + service + " default")
+ 
+ 	def disable(self, service):
+-		os.system("/sbin/chkconfig --level 345 " + service + " off")
++		os.system("/sbin/rc-update del " + service + " default")
+ 
+ 	def isEnabled(self, service):
+-		rv = os.system("/sbin/chkconfig " + service + " >/dev/null 2>&1")
++		rv = os.system("test -L /etc/runlevels/default/" + service + " >/dev/null 2>&1")
+ 		return os.WIFEXITED(rv) and os.WEXITSTATUS(rv) == 0
+ 
+ 	def tryRestart(self, service):
+-		os.system("/sbin/service " + service + " condrestart >/dev/null 2>&1")
++		os.system("/sbin/rc-service " + service + " restart >/dev/null 2>&1")
+ 
+ class SystemdService:
+ 	def start(self, service):

@@ -1,0 +1,15 @@
+#!/sbin/runscript
+# Copyright 1999-2012 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+description="Certificate monitor and PKI enrollment client"
+pidfile=/var/run/certmonger.pid
+command="/usr/sbin/certmonger"
+command_args="-S -p ${pidfile} ${CM_OPTS}"
+start_stop_daemon_args="--quiet"
+
+depend() {
+	need dbus
+	use net
+}

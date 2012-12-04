@@ -1,0 +1,49 @@
+From be8eab60f30d8b0695b14f3d21f365ecb1cdc443 Mon Sep 17 00:00:00 2001
+From: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+Date: Tue, 27 Nov 2012 22:54:30 +0100
+Subject: [PATCH] nscd is always installed: fix behaviour depending on
+ is_enabled()
+
+---
+ ipa-client/ipa-install/ipa-client-install |   11 ++++-------
+ 1 files changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/ipa-client/ipa-install/ipa-client-install b/ipa-client/ipa-install/ipa-client-install
+index 9f44da6..12d0dbf 100755
+--- ipa-client/ipa-install/ipa-client-install
++++ ipa-client/ipa-install/ipa-client-install
+@@ -342,19 +342,15 @@ def uninstall(options, env, quiet=False):
+             print >>sys.stderr, "Failed to set this machine hostname to %s (%s)." % (old_hostname, str(e))
+ 
+     nscd = ipaservices.knownservices.nscd
+-    if nscd.is_installed():
++    if nscd.is_enabled():
+         try:
+             nscd.restart()
+         except:
+             emit_quiet(quiet, "Failed to restart the %s daemon" % (nscd.service_name))
+ 
+-        try:
+-            nscd.enable()
+-        except:
+-            emit_quiet(quiet, "Failed to configure automatic startup of the %s daemon" % (nscd.service_name))
+     else:
+         # this is optional service, just log
+-        root_logger.info("%s daemon is not installed, skip configuration" % (nscd.service_name))
++        root_logger.info("%s daemon is not enabled, skip configuration" % (nscd.service_name))
+ 
+     nslcd = ipaservices.knownservices.nslcd
+     if nslcd.is_installed():
+@@ -1437,7 +1433,8 @@ def install(options, env, fstore, statestore):
+ 
+         try:
+             if options.sssd:
+-                nscd.disable()
++                if nscd.is_enabled():
++                    nscd.disable()
+             else:
+                 nscd.enable()
+         except:
+-- 
+1.7.8.6
+
