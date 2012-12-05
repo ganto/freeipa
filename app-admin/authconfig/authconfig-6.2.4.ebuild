@@ -25,7 +25,7 @@ DEPEND="dev-libs/newt
         nls? ( virtual/libintl )
         sys-devel/gettext"
 
-RDEPEND="dev-libs/libpwquality
+RDEPEND=">=dev-libs/libpwquality-1.2.0-r1
          fingerprint? ( sys-auth/pam_fprint )
          gtk? ( gnome-base/libglade:2.0
                 x11-themes/hicolor-icon-theme )
