@@ -7,7 +7,7 @@ app-admin/authconfig:smartcard - Add dependencies used for smartcard authenticat
 app-admin/authconfig:winbind - Add dependencies used for winbind authentication
 app-admin/freeipa:autofs - Use net-fs/autofs for automatically mounting user's /home directories
 app-admin/freeipa:dns - Manage DNS records of FreeIPA clients/services
-app-admin/freeipa:minimal - Only install FreeIPA client
+app-admin/freeipa:server - Build FreeIPA server-side code
 app-admin/freeipa:nis - Add support for NIS netgroups
 app-admin/freeipa:ntp - Install support for net-misc/ntp
 app-admin/freeipa:systemd - Use SystemD init system instead of OpenRC

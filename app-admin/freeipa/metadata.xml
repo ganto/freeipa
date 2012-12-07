@@ -5,7 +5,7 @@
 		<flag name='autofs'>Use net-fs/autofs for automatically mounting user's
 			/home directories</flag>
 		<flag name='dns'>Manage DNS records of FreeIPA clients/services</flag>
-		<flag name='minimal'>Only install FreeIPA client</flag>
+		<flag name='server'>Build FreeIPA server-side code</flag>
 		<flag name='nis'>Add support for NIS netgroups</flag>
 		<flag name='ntp'>Install support for net-misc/ntp</flag>
 		<flag name='systemd'>Use SystemD init system instead of OpenRC</flag>

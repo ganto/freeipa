@@ -16,7 +16,7 @@ SRC_URI="http://freeipa.org/downloads/src/${P}.tar.gz"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="autofs dns minimal nis ntp static-libs systemd test"
+IUSE="autofs dns nis ntp server static-libs systemd test"
 
 DEPEND="app-admin/authconfig
         dev-libs/cyrus-sasl[kerberos,ssl]
@@ -31,17 +31,16 @@ DEPEND="app-admin/authconfig
         dev-python/setuptools
         net-misc/curl[kerberos]
         net-nds/openldap[ssl,-gnutls]
-        minimal? ( app-crypt/mit-krb5 )
-        !minimal? (
-            app-crypt/mit-krb5[openldap]
-            dev-libs/svrcore
-            dns? ( >=net-dns/bind-9.8.2[ldap,dlz] )
-            >=net-nds/389-ds-base-1.2.10
-            nis? ( sys-auth/slapi-nis )
-            test? ( dev-python/nose
-                    dev-python/paste )
-            www-apache/mod_python
-            www-servers/apache[ssl]
+        !server? ( app-crypt/mit-krb5 )
+        server? ( app-crypt/mit-krb5[openldap]
+                  dev-libs/svrcore
+                  dns? ( >=net-dns/bind-9.8.2[ldap,dlz] )
+                  >=net-nds/389-ds-base-1.2.10
+                  nis? ( sys-auth/slapi-nis )
+                  test? ( dev-python/nose
+                          dev-python/paste )
+                  www-apache/mod_python
+                  www-servers/apache[ssl]
         )
         sys-apps/util-linux
         sys-libs/e2fsprogs-libs
@@ -57,7 +56,7 @@ RDEPEND="app-crypt/certmonger
         dev-python/python-ldap
         dev-python/python-nss
         dns? ( net-dns/bind-tools[gssapi] )
-        !minimal? (
+        server? (
             bash-completion? ( app-shells/bash-completion )
             dev-python/pyasn1
             dev-python/python-memcached
@@ -74,16 +73,16 @@ RDEPEND="app-crypt/certmonger
         >=sys-auth/sssd-1.8.0[autofs?,python]
         ${DEPEND}"
 
-want_apache2_2 !minimal
+want_apache2_2 server
 
 pkg_setup() {
     python_set_active_version 2
     python_pkg_setup
-	depend.apache_pkg_setup !minimal
+    depend.apache_pkg_setup server
 }
 
 src_prepare() {
-	# various Gentoo specific fixes
+    # various Gentoo specific fixes
     epatch "${FILESDIR}"/${P}_fix-ntpdate-call.patch
     epatch "${FILESDIR}"/${P}_fix-nscd-checks.patch
     epatch "${FILESDIR}"/${P}_fix-nss-headers.patch
@@ -105,7 +104,7 @@ src_prepare() {
     eautoreconf
 
     cd ${S}
-    if use minimal; then
+    if ! use server; then
         sed -i '/ipaserver/d' setup.py
     fi
     distutils_src_prepare
@@ -113,7 +112,7 @@ src_prepare() {
     cd ${S}/ipapython
     distutils_src_prepare
 
-    if ! use minimal; then
+    if use server; then
         cd ${S}/daemons
         eautoreconf
 
@@ -126,7 +125,7 @@ src_configure() {
     cd ${S}/ipa-client
     econf $(use_enable static-libs static)
 
-    if ! use minimal; then
+    if use server; then
         cd ${S}/install
         econf
 
@@ -139,7 +138,7 @@ src_compile() {
     cd ${S}/ipa-client
     emake
 
-    if ! use minimal; then
+    if use server; then
         cd ${S}/install
         emake
 
@@ -160,8 +159,7 @@ src_install() {
     cd ${S}/ipa-client
     emake DESTDIR="${ED}" install
 
-
-    if ! use minimal; then
+    if use server; then
         cd ${S}/install
         emake DESTDIR="${ED}" install
 
@@ -207,13 +205,13 @@ src_install() {
 }
 
 pkg_postinst() {
-    if use minimal; then
+    if ! use server; then
         ewarn "If you don't want authconfig to overwrite your /etc/pam.d/system-auth"
         ewarn "configuration use the '--noac' option when running \`ipa-client-install\`."
-		ewarn "You then have to manually add SSSD to nsswitch.conf and the PAM config."
-	fi
-	einfo
-	einfo "Public key authentication for IPA users via SSSD won't be supported before"
-	einfo "the OpenSSH 6.3 release. For more information check:"
-	einfo "    https://bugzilla.mindrot.org/show_bug.cgi?id=1663"
+        ewarn "You then have to manually add SSSD to nsswitch.conf and the PAM config."
+    fi
+    einfo
+    einfo "Public key authentication for IPA users via SSSD won't be supported before"
+    einfo "the OpenSSH 6.3 release. For more information check:"
+    einfo "    https://bugzilla.mindrot.org/show_bug.cgi?id=1663"
 }
