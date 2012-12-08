@@ -1,19 +1,19 @@
-From 558dae857de3e26c6b9b731334925efc6a899e9e Mon Sep 17 00:00:00 2001
+From fdf411005221fcf166641dbd08588799eef3b4be Mon Sep 17 00:00:00 2001
 From: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
 Date: Sat, 24 Nov 2012 19:03:46 +0100
 Subject: [PATCH] Add Gentoo platform service definition
 
 ---
- ipapython/platform/gentoo.py |  196 ++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 196 insertions(+), 0 deletions(-)
+ ipapython/platform/gentoo.py |  198 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 198 insertions(+), 0 deletions(-)
  create mode 100644 ipapython/platform/gentoo.py
 
 diff --git a/ipapython/platform/gentoo.py b/ipapython/platform/gentoo.py
 new file mode 100644
-index 0000000..4641c71
+index 0000000..6df63a6
 --- /dev/null
 +++ ipapython/platform/gentoo.py
-@@ -0,0 +1,196 @@
+@@ -0,0 +1,198 @@
 +# Authors: Simo Sorce <ssorce@redhat.com>
 +#          Alexander Bokovoy <abokovoy@redhat.com>
 +#          Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
@@ -68,19 +68,19 @@ index 0000000..4641c71
 +    # OpenRC doesn't like empty instance_name: will fail with "service_name: not enough arguments"
 +    def stop(self, instance_name="", capture_output=True):
 +        if instance_name:
-+            ipautil.run(["/sbin/rc-service", self.service_name, "stop", instance_name], capture_output=capture_output)
++            ipautil.run(["/sbin/rc-service", self.service_name + "." + instance_name, "stop"], capture_output=capture_output)
 +        else:
 +            ipautil.run(["/sbin/rc-service", self.service_name, "stop"], capture_output=capture_output)
 +
 +    def start(self, instance_name="", capture_output=True):
 +        if instance_name:
-+            ipautil.run(["/sbin/rc-service", self.service_name, "start", instance_name], capture_output=capture_output)
++            ipautil.run(["/sbin/rc-service", self.service_name + "." + instance_name, "start"], capture_output=capture_output)
 +        else:
 +            ipautil.run(["/sbin/rc-service", self.service_name, "start"], capture_output=capture_output)
 +
 +    def restart(self, instance_name="", capture_output=True):
 +        if instance_name:
-+            ipautil.run(["/sbin/rc-service", self.service_name, "restart", instance_name], capture_output=capture_output)
++            ipautil.run(["/sbin/rc-service", self.service_name + "." + instance_name, "restart"], capture_output=capture_output)
 +        else:
 +            ipautil.run(["/sbin/rc-service", self.service_name, "restart"], capture_output=capture_output)
 +
@@ -88,7 +88,7 @@ index 0000000..4641c71
 +        ret = True
 +        try:
 +            if instance_name:
-+                (sout,serr,rcode) = ipautil.run(["/sbin/rc-service", self.service_name, "restart", instance_name])
++                (sout,serr,rcode) = ipautil.run(["/sbin/rc-service", self.service_name + "." + instance_name, "restart"])
 +            else:
 +                (sout,serr,rcode) = ipautil.run(["/sbin/rc-service", self.service_name, "restart"])
 +            if sout.find("status: stopped") >= 0:
@@ -119,10 +119,12 @@ index 0000000..4641c71
 +        ipautil.run(["/sbin/rc-update", "del", self.service_name, "default"])
 +
 +    def install(self, instance_name=""):
-+        pass
++        if instance_name:
++            ipautil.run(["/bin/ln", "-s", self.service_name, "/etc/init.d/" + self.service_name + "." + instance_name])
 +
 +    def remove(self, instance_name=""):
-+        pass
++        if instance_name:
++            ipautil.run(["rm", "-f", "/etc/init.d/" + self.service_name + "." + instance_name])
 +
 +class GentooSSHService(GentooService):
 +    def get_config_dir(self, instance_name=""):

@@ -1,0 +1,129 @@
+From a7eb75b3b5f5cbc396f0b12a2ac518ca7e4fe029 Mon Sep 17 00:00:00 2001
+From: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+Date: Fri, 7 Dec 2012 12:58:54 +0100
+Subject: [PATCH] fix ntpd service config for gentoo
+
+---
+ ipa-client/ipa-install/ipa-client-install |    2 +-
+ ipa-client/ipaclient/ntpconf.py           |   12 ++++--------
+ ipa-client/man/ipa-client-install.1       |    2 +-
+ ipaserver/install/ntpinstance.py          |   14 ++++++++------
+ 4 files changed, 14 insertions(+), 16 deletions(-)
+
+diff --git a/ipa-client/ipa-install/ipa-client-install b/ipa-client/ipa-install/ipa-client-install
+index 12d0dbf..05bab9a 100755
+--- ipa-client/ipa-install/ipa-client-install
++++ ipa-client/ipa-install/ipa-client-install
+@@ -379,7 +379,7 @@ def uninstall(options, env, quiet=False):
+             # to this version but not unenrolled/enrolled again
+             # In such case it is OK to fail
+             restored = fstore.restore_file("/etc/ntp.conf")
+-            restored |= fstore.restore_file("/etc/sysconfig/ntpd")
++            restored |= fstore.restore_file("/etc/conf.d/ntpd")
+             if ntp_step_tickers:
+                restored |= fstore.restore_file("/etc/ntp/step-tickers")
+         except:
+diff --git a/ipa-client/ipaclient/ntpconf.py b/ipa-client/ipaclient/ntpconf.py
+index 71cc9ff..8b28de2 100644
+--- ipa-client/ipaclient/ntpconf.py
++++ ipa-client/ipaclient/ntpconf.py
+@@ -72,14 +72,10 @@ keys /etc/ntp/keys
+ #controlkey 8
+ """
+ 
+-ntp_sysconfig = """# Drop root to id 'ntp:ntp' by default.
+-OPTIONS="-x -u ntp:ntp -p /var/run/ntpd.pid"
++ntp_sysconfig = """# /etc/conf.d/ntpd
+ 
+-# Set to 'yes' to sync hw clock after successful ntpdate
+-SYNC_HWCLOCK=yes
+-
+-# Additional options for ntpdate
+-NTPDATE_OPTIONS=""
++# Drop root to id 'ntp:ntp' by default.
++NTPD_OPTS="-x -u ntp:ntp"
+ """
+ ntp_step_tickers = """# Use IPA-provided NTP server for initial time
+ $SERVER
+@@ -98,7 +94,7 @@ def __write_config(path, content):
+ def config_ntp(server_fqdn, fstore = None, sysstore = None):
+     path_step_tickers = "/etc/ntp/step-tickers"
+     path_ntp_conf = "/etc/ntp.conf"
+-    path_ntp_sysconfig = "/etc/sysconfig/ntpd"
++    path_ntp_sysconfig = "/etc/conf.d/ntpd"
+     sub_dict = { }
+     sub_dict["SERVER"] = server_fqdn
+ 
+diff --git a/ipa-client/man/ipa-client-install.1 b/ipa-client/man/ipa-client-install.1
+index cf3db2e..381bdf3 100644
+--- ipa-client/man/ipa-client-install.1
++++ ipa-client/man/ipa-client-install.1
+@@ -137,7 +137,7 @@ Files that will be replaced if they exist and SSSD is not configured (\-\-no\-ss
+ Files replaced if NTP is enabled:
+ 
+ /etc/ntp.conf\p
+-/etc/sysconfig/ntpd\p
++/etc/conf.d/ntpd\p
+ /etc/ntp/step\-tickers\p
+ .TP
+ Files always created (replacing existing content):
+diff --git a/ipaserver/install/ntpinstance.py b/ipaserver/install/ntpinstance.py
+index e1b72dd..c25da67 100644
+--- ipaserver/install/ntpinstance.py
++++ ipaserver/install/ntpinstance.py
+@@ -36,7 +36,7 @@ class NTPInstance(service.Service):
+     def __write_config(self):
+ 
+         self.fstore.backup_file("/etc/ntp.conf")
+-        self.fstore.backup_file("/etc/sysconfig/ntpd")
++        self.fstore.backup_file("/etc/conf.d/ntpd")
+ 
+         # We use the OS variable to point it towards either the rhel
+         # or fedora pools. Other distros should be added in the future
+@@ -46,6 +46,8 @@ class NTPInstance(service.Service):
+             os = "fedora"
+         elif ipautil.file_exists("/etc/redhat-release"):
+             os = "rhel"
++	elif ipautil.file_exists("/etc/gentoo-release"):
++            os = "gentoo"
+ 
+         srv_vals = []
+         srv_vals.append("0.%s.pool.ntp.org" % os)
+@@ -100,12 +102,12 @@ class NTPInstance(service.Service):
+         #read in memory, find OPTIONS, check/change it, then overwrite file
+         needopts = [ {'val':'-x', 'need':True},
+                      {'val':'-g', 'need':True} ]
+-        fd = open("/etc/sysconfig/ntpd", "r")
++        fd = open("/etc/conf.d/ntpd", "r")
+         lines = fd.readlines()
+         fd.close()
+         for line in lines:
+             sline = line.strip()
+-            if not sline.startswith('OPTIONS'):
++            if not sline.startswith('NTPD_OPTS'):
+                 continue
+             sline = sline.replace('"', '')
+             for opt in needopts:
+@@ -119,16 +121,16 @@ class NTPInstance(service.Service):
+ 
+         done = False
+         if newopts:
+-            fd = open("/etc/sysconfig/ntpd", "w")
++            fd = open("/etc/conf.d/ntpd", "w")
+             for line in lines:
+                 if not done:
+                     sline = line.strip()
+-                    if not sline.startswith('OPTIONS'):
++                    if not sline.startswith('NTPD_OPTS'):
+                         fd.write(line)
+                         continue
+                     sline = sline.replace('"', '')
+                     (variable, opts) = sline.split('=', 1)
+-                    fd.write('OPTIONS="%s %s"\n' % (opts, ' '.join(newopts)))
++                    fd.write('NTPD_OPTS="%s %s"\n' % (opts, ' '.join(newopts)))
+                     done = True
+                 else:
+                     fd.write(line)
+-- 
+1.7.8.6
+

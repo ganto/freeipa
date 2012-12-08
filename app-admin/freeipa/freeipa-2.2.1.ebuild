@@ -84,8 +84,12 @@ pkg_setup() {
 src_prepare() {
     # various Gentoo specific fixes
     epatch "${FILESDIR}"/${P}_fix-ntpdate-call.patch
+    epatch "${FILESDIR}"/${P}_fix-ntpd-service-config.patch
     epatch "${FILESDIR}"/${P}_fix-nscd-checks.patch
     epatch "${FILESDIR}"/${P}_fix-nss-headers.patch
+    if ! use systemd; then
+        epatch "${FILESDIR}"/${P}_dirsrv-openrc-instance.patch
+    fi
 
     # add Gentoo platform support
     epatch "${FILESDIR}"/${P}_gentoo-platform.patch

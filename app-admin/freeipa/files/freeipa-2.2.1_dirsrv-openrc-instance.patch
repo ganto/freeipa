@@ -1,0 +1,50 @@
+commit 53244b042858369329e199230180959102e1fe62
+Author: Reto Gantenbein <reto.gantenbein@linuxmonk.ch>
+Date:   Fri Dec 7 13:26:01 2012 +0100
+
+    install/remove DS service instances
+
+diff --git a/ipaserver/install/cainstance.py b/ipaserver/install/cainstance.py
+index 56b84fc..1534ab2 100644
+--- ipaserver/install/cainstance.py
++++ ipaserver/install/cainstance.py
+@@ -312,6 +312,9 @@ class CADSInstance(service.Service):
+             root_logger.critical("failed to create ds instance %s" % e)
+         inf_fd.close()
+ 
++        root_logger.debug("install ds instance service")
++        ipaservices.knownservices.dirsrv.install(self.serverid)
++
+     def load_pkcs12(self):
+         dirname = dsinstance.config_dirname(self.serverid)
+         dsdb = certs.CertDB(self.realm_name, nssdir=dirname)
+@@ -398,6 +401,7 @@ class CADSInstance(service.Service):
+             dsdb = certs.CertDB(self.realm_name, nssdir=dirname)
+             dsdb.untrack_server_cert("Server-Cert")
+             dsinstance.erase_ds_instance_data(serverid)
++            ipaservices.knownservices.dirsrv.remove(serverid)
+ 
+         user_exists = self.restore_state("user_exists")
+ 
+diff --git a/ipaserver/install/dsinstance.py b/ipaserver/install/dsinstance.py
+index 827f691..9d1c223 100644
+--- ipaserver/install/dsinstance.py
++++ ipaserver/install/dsinstance.py
+@@ -371,6 +371,9 @@ class DsInstance(service.Service):
+         # check for open port 389 from now on
+         self.open_ports.append(389)
+ 
++        root_logger.debug("install ds instance service")
++        ipaservices.knownservices.dirsrv.install(self.serverid)
++
+         root_logger.debug("restarting ds instance")
+         try:
+             self.__restart_instance()
+@@ -648,6 +651,7 @@ class DsInstance(service.Service):
+             dsdb = certs.CertDB(self.realm_name, nssdir=dirname)
+             dsdb.untrack_server_cert("Server-Cert")
+             erase_ds_instance_data(serverid)
++            ipaservices.knownservices.dirsrv.remove(self.serverid)
+ 
+         # At one time we removed this user on uninstall. That can potentially
+         # orphan files, or worse, if another useradd runs in the intermim,
