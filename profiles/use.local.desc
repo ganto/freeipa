@@ -11,3 +11,10 @@ app-admin/freeipa:server - Build FreeIPA server-side code
 app-admin/freeipa:nis - Add support for NIS netgroups
 app-admin/freeipa:ntp - Install support for net-misc/ntp
 app-admin/freeipa:systemd - Use SystemD init system instead of OpenRC
+net-nds/389-ds-base:pam-passthru - Enable pam-passthru plugin - for simple and fast system services used in ldap
+net-nds/389-ds-base:dna - Enable dna (distributed numeric assignment ) plugin - to automatically assign unique uid numbers to new user entries as they are created.
+net-nds/389-ds-base:presence - Enable presence plugin - non-stabdart syntax validation
+net-nds/389-ds-base:bitwise - Enable bitwise plugin - supported data in raw/bitwise format
+net-nds/389-ds-base:autobind - Enable auto bind over unix domain socket (LDAPI) support
+net-nds/389-ds-base:auto-dn-suffix - Enable auto bind with auto dn suffix over unix domain socket (LDAPI) support
+net-nds/389-ds-base:ldapi - Enable LDAP over unix domain socket (LDAPI) support

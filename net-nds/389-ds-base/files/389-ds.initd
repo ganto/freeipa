@@ -1,0 +1,118 @@
+#!/sbin/runscript
+# Copyright 1999-2010 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+DIRSRV_EXEC="/usr/sbin/ns-slapd"
+PID_DIRECTORY="/var/run/dirsrv"
+DIRSRV_CONF_DIR="/etc/dirsrv"
+DS_INSTANCES=${DIRSRV_CONF_DIR}/slapd-*
+F389DS_INSTANCE=${RC_SVCNAME:7}
+
+depend() {
+	need net logger
+	use dns
+	provide dirsvr ldap
+}
+
+checkconfig() {
+	if [ -z "${F389DS_INSTANCE}" ]; then
+		if [ -z "`/bin/ls -d ${DS_INSTANCES} 2>/dev/null`" ]; then
+			eerror "389 Directory Server has not been configured."
+			eend 1
+			return 1
+		fi
+	else
+		if [ ! -d "${DIRSRV_CONF_DIR}"/slapd-${F389DS_INSTANCE} ]; then
+			eerror "389 Directory Server instance '${F389DS_INSTANCE}' not found."
+			eend 1
+			return 1
+		fi
+	fi
+}
+
+start_instance() {
+	ebegin "Starting 389 Directory Server: instance ${1}"
+	start-stop-daemon --start --quiet -m \
+		--pidfile ${PID_DIRECTORY}/${1}.startpid \
+		--exec ${DIRSRV_EXEC} -- -D ${DIRSRV_CONF_DIR}/${1} \
+		-i ${PID_DIRECTORY}/${1}.pid \
+		-w ${PID_DIRECTORY}/${1}.startpid
+	sts=${?}
+	eend ${sts}
+	if [ "${sts}" != "0" ]; then
+		return 1
+	fi
+}
+
+stop_instance() {
+	ebegin "Stopping 389 Directory Server: instance ${1}"
+	start-stop-daemon --stop --quiet \
+		--pidfile ${PID_DIRECTORY}/${1}.pid \
+		--exec ${DIRSRV_EXEC}
+	eend ${?}
+}
+
+status_instance() {
+	if [ -e ${PID_DIRECTORY}/${1}.pid ]; then
+		pid=$(cat ${PID_DIRECTORY}/${1}.pid)
+		if [ $(echo "$pid" | grep -c $pid) -ge 1 ]; then
+			einfo "389 Directory Server: instance ${1} (pid $pid) running."
+		else
+			ewarn "389 Directory Server: instance ${1} (pid $pid) NOT running."
+		fi
+	else
+		eerror "389 Directory Server: instance ${1} is NOT running."
+	fi
+}
+
+start() {
+	checkconfig || return 1
+	[ ! -e ${PID_DIRECTORY} ] && mkdir ${PID_DIRECTORY}
+
+	if [ -z "${F389DS_INSTANCE}" ]; then
+		sts=0
+		for instance in ${DS_INSTANCES}; do
+			instance=$(basename ${instance})
+			# skip .removed instances, bug #338133
+			if [ "${instance%%.removed}" != "${instance}" ]; then
+				continue
+			fi
+			start_instance ${instance}
+			ret=${?}
+			sts=$((${sts}|${ret}))
+		done
+	else
+		start_instance ${F389DS_INSTANCE}
+		sts=${?}
+	fi
+	return ${sts}
+}
+
+
+
+stop() {
+	checkconfig || return 1
+
+	if [ -z "${F389DS_INSTANCE}" ]; then
+		for instance in ${DS_INSTANCES}; do
+			instance=$(basename ${instance})
+			stop_instance ${instance}
+		done
+	else
+		stop_instance ${F389DS_INSTANCE}
+	fi
+}
+
+status() {
+	checkconfig || return 1
+
+	if [ -z "${F389DS_INSTANCE}" ]; then
+		for instance in ${DS_INSTANCES}; do
+			instance=$(basename ${instance})
+			status_instance ${instance}
+		done
+	else
+		status_instance ${F389DS_INSTANCE}
+	fi
+}
