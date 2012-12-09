@@ -9,6 +9,7 @@ This Gentoo overlay should act as a brewery for FreeIPA related ebuilds. It cont
 * **app-admin/authconfig** (6.2.4) - Tool for setting up authentication from network services
 * **app-admin/freeipa** (2.2.1) - The Identity, Policy and Audit system
 * **app-crypt/certmonger** (0.61) - D-Bus -based service to simplify interaction with certificate authorities
+* **dev-java/osutil** (2.0.2) - Operating System Utilities JNI Package
 * **dev-python/python-krbV** (1.0.90) - Python extension module for Kerberos 5
 * **net-nds/389-ds-base** (1.2.11.15) - 389 Directory Server (core librares and daemons)
 

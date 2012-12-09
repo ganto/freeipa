@@ -1,0 +1,11 @@
+--- src/com/netscape/osutil/OSUtil.c.old	2012-12-09 17:36:56.360854145 +0100
++++ src/com/netscape/osutil/OSUtil.c	2012-12-09 17:33:44.852287979 +0100
+@@ -28,7 +28,7 @@
+ #include <fcntl.h>
+ #endif
+ 
+-#include "base64.h"
++#include <nss/base64.h>
+ 
+ JNIEXPORT jbyteArray JNICALL
+ Java_com_netscape_osutil_OSUtil_AtoB
