@@ -11,6 +11,7 @@ This Gentoo overlay should act as a brewery for FreeIPA related ebuilds. It cont
 * **app-crypt/certmonger** (0.61) - D-Bus -based service to simplify interaction with certificate authorities
 * **dev-java/jss** (4.2.6) - Network Security Services for Java (JSS)
 * **dev-java/osutil** (2.0.2) - Operating System Utilities JNI Package
+* **dev-java/tomcatjss** (6.0.1) - JSSE implementation using JSS for Tomcat
 * **dev-python/python-krbV** (1.0.90) - Python extension module for Kerberos 5
 * **net-nds/389-ds-base** (1.2.11.15) - 389 Directory Server (core librares and daemons)
 
