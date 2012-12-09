@@ -5,6 +5,7 @@
 
 DIRSRV_EXEC="/usr/sbin/ns-slapd"
 PID_DIRECTORY="/var/run/dirsrv"
+LOCK_DIRECTORY="/var/lock/dirsrv"
 DIRSRV_CONF_DIR="/etc/dirsrv"
 DS_INSTANCES=${DIRSRV_CONF_DIR}/slapd-*
 F389DS_INSTANCE=${RC_SVCNAME:7}
@@ -31,13 +32,50 @@ checkconfig() {
 	fi
 }
 
+# /var/run and /var/lock are on a tmpfs which are wiped out upon a reboot.
+# Recreated the necessary directories for a server start and make sure that
+# they are writable for the directory server process. The argument to this
+# function is the server instance, which must have a dse.ldif file in its
+# configuration directory.
+create_run_dirs() {
+	owner=`grep \^nsslapd-localuser ${DIRSRV_CONF_DIR}/${1}/dse.ldif | awk '{print $2}'`
+	instance_lockdir=${LOCK_DIRECTORY}/${1}
+	if [ ! -d ${PID_DIRECTORY} ]; then
+		mkdir -p ${PID_DIRECTORY}
+		if [ -n "${owner}" ]; then
+			chown ${owner} ${PID_DIRECTORY}
+			chmod 0700 ${PID_DIRECTORY}
+		fi
+	fi
+	if [ ! -d ${instance_lockdir} ]; then
+		mkdir -p ${instance_lockdir}
+		if [ -n "${owner}" ]; then
+			chown ${owner} ${instance_lockdir}
+			chmod 0700 ${instance_lockdir}
+		fi
+	fi
+}
+
 start_instance() {
+	# The server creates pidfile and writes the pid to it when it is fully
+	# started and available to serve clients
+	pidfile=${PID_DIRECTORY}/${1}.pid
+	# The server creates startpidfile and writes the pid to just after
+	# the process begins i.e. it received the startup request and didn't
+	# die a horrible death (e.g. shared lib problem, oom, etc.)
+	startpidfile=${PID_DIRECTORY}/${1}.startpid
+
+	rm -f ${pidfile}
+	rm -f ${startpidfile}
+	create_run_dirs ${1}
+
 	ebegin "Starting 389 Directory Server: instance ${1}"
 	start-stop-daemon --start --quiet -m \
-		--pidfile ${PID_DIRECTORY}/${1}.startpid \
-		--exec ${DIRSRV_EXEC} -- -D ${DIRSRV_CONF_DIR}/${1} \
-		-i ${PID_DIRECTORY}/${1}.pid \
-		-w ${PID_DIRECTORY}/${1}.startpid
+		--pidfile ${startpidfile} \
+		--exec ${DIRSRV_EXEC} -- \
+		-D ${DIRSRV_CONF_DIR}/${1} \
+		-i ${pidfile} \
+		-w ${startpidfile}
 	sts=${?}
 	eend ${sts}
 	if [ "${sts}" != "0" ]; then
@@ -56,7 +94,8 @@ stop_instance() {
 status_instance() {
 	if [ -e ${PID_DIRECTORY}/${1}.pid ]; then
 		pid=$(cat ${PID_DIRECTORY}/${1}.pid)
-		if [ $(echo "$pid" | grep -c $pid) -ge 1 ]; then
+		name=$(ps -p $pid | tail -1 | awk '{ print $4 }')
+		if kill -0 $pid 2>/dev/null && [ ${name} = "ns-slapd" ]; then
 			einfo "389 Directory Server: instance ${1} (pid $pid) running."
 		else
 			ewarn "389 Directory Server: instance ${1} (pid $pid) NOT running."
@@ -68,9 +107,6 @@ status_instance() {
 
 start() {
 	checkconfig || return 1
-	[ ! -e ${PID_DIRECTORY} ] && mkdir ${PID_DIRECTORY}
-	chown dirsrv:dirsrv ${PID_DIRECTORY}
-	chmod 664 ${PID_DIRECTORY}
 
 	if [ -z "${F389DS_INSTANCE}" ]; then
 		sts=0
@@ -90,8 +126,6 @@ start() {
 	fi
 	return ${sts}
 }
-
-
 
 stop() {
 	checkconfig || return 1
