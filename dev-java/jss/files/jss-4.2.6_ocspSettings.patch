@@ -1,0 +1,106 @@
+diff -up jss-4.2.6/mozilla/security/jss/lib/jss.def.orig jss-4.2.6/mozilla/security/jss/lib/jss.def
+--- jss-4.2.6/mozilla/security/jss/lib/jss.def.orig	2009-11-04 14:26:26.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/lib/jss.def	2009-11-04 14:11:05.000000000 -0800
+@@ -329,6 +329,8 @@ Java_org_mozilla_jss_pkcs11_PK11Token_ne
+ Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateECKeyPairWithOpFlags;
+ Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateRSAKeyPairWithOpFlags;
+ Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateDSAKeyPairWithOpFlags;
++Java_org_mozilla_jss_CryptoManager_OCSPCacheSettingsNative;
++Java_org_mozilla_jss_CryptoManager_setOCSPTimeoutNative;
+ ;+    local:
+ ;+       *;
+ ;+};
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.c.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.c
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.c.orig	2009-11-04 14:20:43.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.c	2009-11-05 10:48:32.590000000 -0800
+@@ -976,3 +976,45 @@ Java_org_mozilla_jss_CryptoManager_confi
+     }
+ }
+ 
++
++/**********************************************************************
++* OCSPCacheSettingsNative
++*
++* Allows configuration of the OCSP responder cache during runtime.
++*/
++JNIEXPORT void JNICALL
++Java_org_mozilla_jss_CryptoManager_OCSPCacheSettingsNative(
++        JNIEnv *env, jobject this,
++        jint ocsp_cache_size,
++        jint ocsp_min_cache_entry_duration,
++        jint ocsp_max_cache_entry_duration)
++{
++    SECStatus rv = SECFailure;
++
++    rv = CERT_OCSPCacheSettings(
++        ocsp_cache_size, ocsp_min_cache_entry_duration,
++        ocsp_max_cache_entry_duration);
++
++    if (rv != SECSuccess) {
++        JSS_throwMsgPrErr(env,
++                     GENERAL_SECURITY_EXCEPTION,
++                     "Failed to set OCSP cache: error "+ PORT_GetError());
++    }
++}
++
++JNIEXPORT void JNICALL
++Java_org_mozilla_jss_CryptoManager_setOCSPTimeoutNative(
++        JNIEnv *env, jobject this,
++        jint ocsp_timeout )
++{
++    SECStatus rv = SECFailure;
++
++    rv = CERT_SetOCSPTimeout(ocsp_timeout);
++
++    if (rv != SECSuccess) {
++        JSS_throwMsgPrErr(env,
++                     GENERAL_SECURITY_EXCEPTION,
++                     "Failed to set OCSP timeout: error "+ PORT_GetError());
++    }
++}
++
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java.orig	2009-11-04 14:20:33.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java	2009-11-05 10:48:59.415001000 -0800
+@@ -1479,4 +1479,41 @@ public final class CryptoManager impleme
+                     String ocspResponderCertNickname )
+                     throws GeneralSecurityException;
+ 
++    /**
++     * change OCSP cache settings
++     *      * @param ocsp_cache_size max cache entries
++     *      * @param ocsp_min_cache_entry_duration minimum seconds to next fetch attempt
++     *      * @param ocsp_max_cache_entry_duration maximum seconds to next fetch attempt
++     */
++    public void OCSPCacheSettings(
++        int ocsp_cache_size, 
++        int ocsp_min_cache_entry_duration,
++        int ocsp_max_cache_entry_duration)
++    throws GeneralSecurityException
++    {
++        OCSPCacheSettingsNative(ocsp_cache_size,
++                                   ocsp_min_cache_entry_duration,
++                                   ocsp_max_cache_entry_duration);
++    }
++
++    private native void OCSPCacheSettingsNative(
++        int ocsp_cache_size, 
++        int ocsp_min_cache_entry_duration,
++        int ocsp_max_cache_entry_duration)
++                    throws GeneralSecurityException;
++
++    /**
++     * set OCSP timeout value
++     *      * @param ocspTimeout OCSP timeout in seconds
++     */
++    public void setOCSPTimeout(
++        int ocsp_timeout )
++    throws GeneralSecurityException
++    {
++        setOCSPTimeoutNative( ocsp_timeout);
++    }
++
++    private native void setOCSPTimeoutNative(
++        int ocsp_timeout )
++                    throws GeneralSecurityException;
+ }

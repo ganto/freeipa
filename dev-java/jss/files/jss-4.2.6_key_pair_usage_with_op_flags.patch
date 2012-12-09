@@ -1,0 +1,544 @@
+diff -rupN jss-4.2.5/mozilla/security/jss/lib/jss.def jss-4.2.6/mozilla/security/jss/lib/jss.def
+--- jss-4.2.5/mozilla/security/jss/lib/jss.def	2007-05-08 18:40:14.000000000 -0700
++++ jss-4.2.6/mozilla/security/jss/lib/jss.def	2009-05-30 01:57:48.000000000 -0700
+@@ -316,3 +316,12 @@ Java_org_mozilla_jss_ssl_SSLSocket_isFip
+ ;+    local:
+ ;+       *;
+ ;+};
++;+JSS_4.2.6 {     # JSS 4.2.6 release
++;+    global:
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateECKeyPairWithOpFlags;
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateRSAKeyPairWithOpFlags;
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateDSAKeyPairWithOpFlags;
++;+    local:
++;+       *;
++;+};
++
+diff -rupN jss-4.2.5/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java
+--- jss-4.2.5/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java	2005-11-14 14:15:06.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java	2009-05-22 07:40:14.000000000 -0700
+@@ -81,7 +81,6 @@ public class KeyPairGenerator {
+ 	genKeyPair() throws TokenException {
+ 		return engine.generateKeyPair();
+ 	}
+-
+     /**
+      * @return The type of key that this generator generates.
+      */
+@@ -192,6 +191,15 @@ public class KeyPairGenerator {
+         engine.extractablePairs(extractable);
+     }
+ 
++    public void setKeyPairUsages(KeyPairGeneratorSpi.Usage[] usages, 
++                                 KeyPairGeneratorSpi.Usage[] usages_mask) {
++        engine.setKeyPairUsages(usages,usages_mask);
++    }
++   
++
++
++
++
+ 	protected KeyPairAlgorithm algorithm;
+ 	protected KeyPairGeneratorSpi engine;
+ }
+diff -rupN jss-4.2.5/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGeneratorSpi.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGeneratorSpi.java
+--- jss-4.2.5/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGeneratorSpi.java	2005-11-14 14:15:06.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGeneratorSpi.java	2009-05-30 03:24:31.000000000 -0700
+@@ -60,4 +60,38 @@ public abstract class KeyPairGeneratorSp
+     public abstract void extractablePairs(boolean extractable);
+ 
+     public abstract boolean keygenOnInternalToken();
++
++    /**
++     * In PKCS #11, each keypair can be marked with the operations it will
++     * be used to perform. Some tokens require that a key be marked for
++     * an operation before the key can be used to perform that operation;
++     * other tokens don't care. NSS provides a way to specify a set of
++     * flags and a corresponding mask for these flags.  If a specific usage
++     * is desired set the value for that usage. If it is not set, let NSS
++     * behave in it's default fashion.  If a behavior is desired, also set
++     * that behavior in the mask as well as the flags.
++     * 
++     */
++    public final static class Usage {
++        private Usage() { }
++        private Usage(int val) { this.val = val;}
++        private int val;
++
++        public int getVal() { return val; }
++
++        // these enums must match the 
++        // and the opFlagForUsage list in PK11KeyPairGenerator.java
++        public static final Usage ENCRYPT = new Usage(0);
++        public static final Usage DECRYPT = new Usage(1);
++        public static final Usage SIGN = new Usage(2);
++        public static final Usage SIGN_RECOVER = new Usage(3);
++        public static final Usage VERIFY = new Usage(4);
++        public static final Usage VERIFY_RECOVER = new Usage(5);
++        public static final Usage WRAP = new Usage(6);
++        public static final Usage UNWRAP = new Usage(7);
++        public static final Usage DERIVE = new Usage(8);
++    }
++
++    public abstract void setKeyPairUsages(KeyPairGeneratorSpi.Usage[] usages, 
++                                          KeyPairGeneratorSpi.Usage[] usages_mask);
+ }
+diff -rupN jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.c jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.c
+--- jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.c	2006-02-22 17:21:42.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.c	2009-06-02 10:36:46.819581000 -0700
+@@ -120,13 +120,11 @@ finish:
+ 
+ int PK11_NumberObjectsFor(PK11SlotInfo*, CK_ATTRIBUTE*, int);
+ 
+-/*
+- * make a common key gen function for both this file and PK11Token.c
+- */
+ SECStatus
+-JSS_PK11_generateKeyPair(JNIEnv *env, CK_MECHANISM_TYPE mechanism, 
++JSS_PK11_generateKeyPairWithOpFlags(JNIEnv *env, CK_MECHANISM_TYPE mechanism, 
+     PK11SlotInfo *slot, SECKEYPublicKey **pubk, SECKEYPrivateKey **privk,
+-    void *params, PRBool temporary, jint sensitive, jint extractable)
++    void *params, PRBool temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask)
+ {
+     PK11AttrFlags attrFlags = 0;
+     *privk=NULL;
+@@ -173,12 +171,16 @@ JSS_PK11_generateKeyPair(JNIEnv *env, CK
+     } else {
+         attrFlags |= (PK11_ATTR_INSENSITIVE | PK11_ATTR_PUBLIC);
+     }
+-    *privk = PK11_GenerateKeyPairWithFlags(slot,
++
++    *privk = PK11_GenerateKeyPairWithOpFlags(slot,
+                                           mechanism,
+                                           params, 
+                                           pubk,
+                                           attrFlags,
++                                          (CK_FLAGS) op_flags,
++                                          (CK_FLAGS) op_flags_mask/* the ones we don't want*/,
+                                           NULL /* default PW callback */ );
++
+     if( *privk == NULL ) {
+         int errLength;
+         char *errBuf;
+@@ -217,13 +219,28 @@ finish:
+     return SECFailure;
+ }
+ 
++/*
++ * make a common key gen function for both this file and PK11Token.c
++ */
++SECStatus
++JSS_PK11_generateKeyPair(JNIEnv *env, CK_MECHANISM_TYPE mechanism,
++    PK11SlotInfo *slot, SECKEYPublicKey **pubk, SECKEYPrivateKey **privk,
++    void *params, PRBool temporary, jint sensitive, jint extractable)
++{
++
++    return JSS_PK11_generateKeyPairWithOpFlags(env, mechanism, slot, pubk, privk, params, temporary, sensitive, extractable, 0, 0);
++}
++
++
+ /**********************************************************************
+- * Local generic helper
++ * Local generic helpers
+  */
++
+ static jobject 
+-PK11KeyPairGenerator(JNIEnv *env, jobject this, jobject token, 
++PK11KeyPairGeneratorWithOpFlags(JNIEnv *env, jobject this, jobject token, 
+     CK_MECHANISM_TYPE mechanism, void *params, 
+-    jboolean temporary, jint sensitive, jint extractable)
++    jboolean temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask)
+ {
+     PK11SlotInfo* slot;
+     SECKEYPrivateKey *privk=NULL;
+@@ -242,8 +259,8 @@ PK11KeyPairGenerator(JNIEnv *env, jobjec
+     }
+     PR_ASSERT(slot != NULL);
+ 
+-    rv = JSS_PK11_generateKeyPair(env, mechanism, slot, &pubk, &privk,
+-    	params, temporary, sensitive, extractable);
++    rv = JSS_PK11_generateKeyPairWithOpFlags(env, mechanism, slot, &pubk, &privk,
++    	params, temporary, sensitive, extractable, op_flags, op_flags_mask);
+     if (rv != SECSuccess) {
+         goto finish;
+     }
+@@ -267,6 +284,16 @@ finish:
+     return keyPair;
+ }
+ 
++static jobject
++PK11KeyPairGenerator(JNIEnv *env, jobject this, jobject token,
++    CK_MECHANISM_TYPE mechanism, void *params,
++    jboolean temporary, jint sensitive, jint extractable)
++{
++    return PK11KeyPairGeneratorWithOpFlags(env, this, token, mechanism, params, temporary, sensitive, extractable, 0, 0);
++}
++
++
++
+ /**********************************************************************
+  * PK11KeyPairGenerator.generateRSAKeyPair
+  */
+@@ -289,6 +316,30 @@ Java_org_mozilla_jss_pkcs11_PK11KeyPairG
+      &params, temporary, sensitive, extractable);
+ }
+ 
++/**********************************************************************
++ * PK11KeyPairGenerator.generateRSAKeyPairWithOpFlags
++ */
++JNIEXPORT jobject JNICALL
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateRSAKeyPairWithOpFlags
++  (JNIEnv *env, jobject this, jobject token, jint keySize, jlong publicExponent,
++    jboolean temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask)
++{
++    PK11RSAGenParams params;
++
++    PR_ASSERT(env!=NULL && this!=NULL && token!=NULL);
++
++    /**************************************************
++     * setup parameters
++     *************************************************/
++    params.keySizeInBits = keySize;
++    params.pe = publicExponent;
++
++    return PK11KeyPairGeneratorWithOpFlags(env, this, token, CKM_RSA_PKCS_KEY_PAIR_GEN,
++     &params, temporary, sensitive, extractable, op_flags, op_flags_mask);
++}
++
++
+ #define ZERO_SECITEM(item) {(item).len=0; (item).data=NULL;}
+ 
+ /**********************************************************************
+@@ -339,6 +390,57 @@ finish:
+     return keyPair;
+ }
+ 
++/**********************************************************************
++ *
++ * PK11KeyPairGenerator.generateDSAKeyPair
++ *
++ */
++JNIEXPORT jobject JNICALL
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateDSAKeyPairWithOpFlags
++  (JNIEnv *env, jobject this, jobject token, jbyteArray P, jbyteArray Q,
++    jbyteArray G, jboolean temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask)
++{
++    SECItem p, q, g;
++    PQGParams *params=NULL;
++    jobject keyPair=NULL;
++
++    PR_ASSERT(env!=NULL && this!=NULL && token!=NULL && P!=NULL && Q!=NULL
++                && G!=NULL);
++
++    /* zero these so we can free them indiscriminately later */
++    ZERO_SECITEM(p);
++    ZERO_SECITEM(q);
++    ZERO_SECITEM(g);
++
++    /**************************************************
++     * Setup the parameters
++     *************************************************/
++    if( JSS_ByteArrayToOctetString(env, P, &p) ||
++        JSS_ByteArrayToOctetString(env, Q, &q) ||
++        JSS_ByteArrayToOctetString(env, G, &g) )
++    {
++        PR_ASSERT( (*env)->ExceptionOccurred(env) != NULL);
++        goto finish;
++    }
++    params = PK11_PQG_NewParams(&p, &q, &g);
++    if(params == NULL) {
++        JSS_throw(env, OUT_OF_MEMORY_ERROR);
++        goto finish;
++    }
++    keyPair = PK11KeyPairGeneratorWithOpFlags(env, this, token, CKM_DSA_KEY_PAIR_GEN,
++                        params, temporary, sensitive, extractable,
++                        op_flags, op_flags_mask);
++
++finish:
++    SECITEM_FreeItem(&p, PR_FALSE);
++    SECITEM_FreeItem(&q, PR_FALSE);
++    SECITEM_FreeItem(&g, PR_FALSE);
++    PK11_PQG_DestroyParams(params);
++    return keyPair;
++}
++
++
+ void
+ DumpItem(SECItem *item)
+ {
+@@ -361,6 +463,7 @@ Java_org_mozilla_jss_pkcs11_PK11KeyPairG
+   (JNIEnv *env, jobject this, jobject token, jbyteArray Curve, 
+     jboolean temporary, jint sensitive, jint extractable)
+ {
++
+     SECItem curve;
+     jobject keyPair=NULL;
+ 
+@@ -385,3 +488,39 @@ finish:
+     SECITEM_FreeItem(&curve, PR_FALSE);
+     return keyPair;
+ }
++
++/**********************************************************************
++ *
++ * PK11KeyPairGenerator.generateECKeyPairWithOpFlags
++ *
++ */
++JNIEXPORT jobject JNICALL
++Java_org_mozilla_jss_pkcs11_PK11KeyPairGenerator_generateECKeyPairWithOpFlags
++  (JNIEnv *env, jobject this, jobject token, jbyteArray Curve, 
++    jboolean temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask)
++{
++    SECItem curve;
++    jobject keyPair=NULL;
++
++    PR_ASSERT(env!=NULL && this!=NULL && token!=NULL && Curve!=NULL );
++
++    /* zero these so we can free them indiscriminately later */
++    ZERO_SECITEM(curve);
++
++    /**************************************************
++     * Setup the parameters
++     *************************************************/
++    if( JSS_ByteArrayToOctetString(env, Curve, &curve))
++    {
++        PR_ASSERT( (*env)->ExceptionOccurred(env) != NULL);
++        goto finish;
++    }
++    keyPair = PK11KeyPairGeneratorWithOpFlags(env, this, token, CKM_EC_KEY_PAIR_GEN,
++     			&curve, temporary, sensitive, extractable,
++                op_flags, op_flags_mask);
++
++finish:
++    SECITEM_FreeItem(&curve, PR_FALSE);
++    return keyPair;
++}
+diff -rupN jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.java
+--- jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.java	2006-02-22 17:21:42.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11KeyPairGenerator.java	2009-05-30 05:30:25.000000000 -0700
+@@ -55,6 +55,39 @@ public final class PK11KeyPairGenerator
+     extends org.mozilla.jss.crypto.KeyPairGeneratorSpi
+ {
+ 
++    // opFlag constants: each of these flags specifies a crypto operation
++    // the key will support.  Their values must match the same-named C
++    // preprocessor macros defined in the PKCS #11 header pkcs11t.h.
++    private static final int CKF_ENCRYPT = 0x00000100;
++    private static final int CKF_DECRYPT = 0x00000200;
++    private static final int CKF_SIGN = 0x00000800;
++    private static final int CKF_SIGN_RECOVER = 0x00001000;
++    private static final int CKF_VERIFY = 0x00002000;
++    private static final int CKF_VERIFY_RECOVER = 0x00004000;
++    private static final int CKF_WRAP = 0x00020000;
++    private static final int CKF_UNWRAP = 0x00040000;
++    private static final int CKF_DERIVE = 0x00080000;
++
++    // A table for mapping SymmetricKey.Usage to opFlag.  This must be
++    // synchronized with SymmetricKey.Usage.
++    private static final int opFlagForUsage[] = {
++        CKF_ENCRYPT,        /* 0 */
++        CKF_DECRYPT,        /* 1 */
++        CKF_SIGN,           /* 2 */
++        CKF_SIGN_RECOVER,   /* 3 */
++        CKF_VERIFY,         /* 4 */
++        CKF_VERIFY_RECOVER, /* 5 */
++        CKF_WRAP,           /* 6 */
++        CKF_UNWRAP,         /* 7 */
++        CKF_DERIVE          /* 8 */
++    };
++
++    // The crypto operations the key will support.  It is the logical OR
++    // of the opFlag constants, each specifying a supported operation.
++    private int opFlags = 0;
++    private int opFlagsMask = 0;
++
++
+     ///////////////////////////////////////////////////////////////////////
+     ///////////////////////////////////////////////////////////////////////
+     // Constructors
+@@ -189,41 +222,45 @@ public final class PK11KeyPairGenerator
+      * Generates a key pair on a token. Uses parameters if they were passed
+      * in through a call to <code>initialize</code>, otherwise uses defaults.
+      */
++
+     public KeyPair generateKeyPair()
+         throws TokenException
+     {
+         if(algorithm == KeyPairAlgorithm.RSA) {
+             if(params != null) {
+                 RSAParameterSpec rsaparams = (RSAParameterSpec)params;
+-                return generateRSAKeyPair(
++                return generateRSAKeyPairWithOpFlags(
+                                     token,
+                                     rsaparams.getKeySize(),
+                                     rsaparams.getPublicExponent().longValue(),
+                                     temporaryPairMode,
+                                     sensitivePairMode,
+-                                    extractablePairMode);
++                                    extractablePairMode,
++                                    opFlags, opFlagsMask);
+             } else {
+-                return generateRSAKeyPair(
++                return generateRSAKeyPairWithOpFlags(
+                                     token,
+                                     DEFAULT_RSA_KEY_SIZE,
+                                     DEFAULT_RSA_PUBLIC_EXPONENT.longValue(),
+                                     temporaryPairMode,
+                                     sensitivePairMode,
+-                                    extractablePairMode);
++                                    extractablePairMode,
++                                    opFlags, opFlagsMask);
+             }
+         } else if(algorithm == KeyPairAlgorithm.DSA ) {
+             if(params==null) {
+                 params = PQG1024;
+             }
+             DSAParameterSpec dsaParams = (DSAParameterSpec)params;
+-            return generateDSAKeyPair(
++            return generateDSAKeyPairWithOpFlags(
+                 token,
+                 PQGParams.BigIntegerToUnsignedByteArray(dsaParams.getP()),
+                 PQGParams.BigIntegerToUnsignedByteArray(dsaParams.getQ()),
+                 PQGParams.BigIntegerToUnsignedByteArray(dsaParams.getG()),
+                 temporaryPairMode,
+                 sensitivePairMode,
+-                extractablePairMode);
++                extractablePairMode,
++                opFlags, opFlagsMask);
+         } else {
+             Assert._assert( algorithm == KeyPairAlgorithm.EC );
+             // requires JAVA 1.5 for ECParameters.
+@@ -233,12 +270,14 @@ public final class PK11KeyPairGenerator
+ 	    // ecParams.init(params);
+             PK11ParameterSpec ecParams = (PK11ParameterSpec) params;
+ 
+-            return generateECKeyPair(
++            return generateECKeyPairWithOpFlags(
+                 token,
+ 		ecParams.getEncoded(), /* curve */
+                 temporaryPairMode,
+                 sensitivePairMode,
+-                extractablePairMode);
++                extractablePairMode,
++                opFlags,
++                opFlagsMask);
+         } 
+     }
+ 
+@@ -266,6 +305,17 @@ public final class PK11KeyPairGenerator
+         throws TokenException;
+ 
+     /**
++     * Generates an RSA key pair with the given size and public exponent.
++     * Adds the ability to specify a set of flags and masks
++     * to control how NSS generates the key pair.
++     */
++    private native KeyPair
++    generateRSAKeyPairWithOpFlags(PK11Token token, int keySize, long publicExponent,
++            boolean temporary, int sensitive, int extractable,
++            int op_flags, int op_flags_mask)
++        throws TokenException;
++
++    /**
+      * Generates a DSA key pair with the given P, Q, and G values.
+      * P, Q, and G are stored as big-endian twos-complement octet strings.
+      */
+@@ -275,6 +325,19 @@ public final class PK11KeyPairGenerator
+         throws TokenException;
+ 
+     /**
++     * Generates a DSA key pair with the given P, Q, and G values.
++     * P, Q, and G are stored as big-endian twos-complement octet strings.
++     * Adds the ability to specify a set of flags and masks
++     * to control how NSS generates the key pair.
++     */
++    private native KeyPair
++    generateDSAKeyPairWithOpFlags(PK11Token token, byte[] P, byte[] Q, byte[] G,
++            boolean temporary, int sensitive, int extractable,
++            int op_flags, int op_flags_mask)
++        throws TokenException;
++
++
++    /**
+      * Generates a EC key pair with the given a curve.
+      * Curves are stored as DER Encoded Parameters.
+      */
+@@ -282,6 +345,18 @@ public final class PK11KeyPairGenerator
+     generateECKeyPair(PK11Token token, byte[] Curve, 
+             boolean temporary, int sensitive, int extractable)
+         throws TokenException;
++    /**
++     * Generates a EC key pair with the given a curve.
++     * Curves are stored as DER Encoded Parameters.
++     * Adds the ability to specify a set of flags and masks
++     * to control how NSS generates the key pair.
++     */
++
++    private native KeyPair
++    generateECKeyPairWithOpFlags(PK11Token token, byte[] Curve, 
++            boolean temporary, int sensitive, int extractable,
++            int op_flags, int op_flags_mask)
++        throws TokenException;
+ 
+     ///////////////////////////////////////////////////////////////////////
+     ///////////////////////////////////////////////////////////////////////
+@@ -397,6 +472,38 @@ public final class PK11KeyPairGenerator
+         extractablePairMode = extractable ? 1 : 0;
+     }
+ 
++    /**
++     * Sets the requested key usages desired for the 
++     * generated key pair. 
++     * This allows the caller to suggest how NSS generates the key pair.
++     * @param usages List of desired key usages. 
++     * @param usages_mask Corresponding mask for the key usages.
++     * if a usages is desired, make sure it is in the mask as well.
++     */
++
++    public void setKeyPairUsages(org.mozilla.jss.crypto.KeyPairGeneratorSpi.Usage[] usages, 
++                                 org.mozilla.jss.crypto.KeyPairGeneratorSpi.Usage[] usages_mask) {
++
++        this.opFlags = 0;
++        this.opFlagsMask = 0;
++
++        if(usages != null) {
++            for( int i = 0; i < usages.length; i++ ) {
++                if( usages[i] != null ) {
++                    this.opFlags |= opFlagForUsage[usages[i].getVal()];
++                }
++            }
++        }
++
++        if(usages_mask != null) {
++            for( int i = 0; i < usages_mask.length; i++ ) {
++                if( usages_mask[i] != null ) {
++                    this.opFlagsMask |= opFlagForUsage[usages_mask[i].getVal()];
++                }
++            }
++        }
++    }
++
+     //
+     // requires JAVA 1.5
+     //
+diff -rupN jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/pk11util.h jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/pk11util.h
+--- jss-4.2.5/mozilla/security/jss/org/mozilla/jss/pkcs11/pk11util.h	2006-02-22 17:21:42.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/pk11util.h	2009-05-29 08:34:24.000000000 -0700
+@@ -157,6 +157,12 @@ JSS_PK11_generateKeyPair(JNIEnv *env, CK
+     PK11SlotInfo *slot, SECKEYPublicKey **pubk, SECKEYPrivateKey **privK,
+     void *params, PRBool temporary, jint senstive, jint extractable);
+ 
++SECStatus
++JSS_PK11_generateKeyPair_withOpFlags(JNIEnv *env, CK_MECHANISM_TYPE mechanism,
++    PK11SlotInfo *slot, SECKEYPublicKey **pubk, SECKEYPrivateKey **privk,
++    void *params, PRBool temporary, jint sensitive, jint extractable,
++    jint op_flags, jint op_flags_mask);
++
+ /*=====================================================================
+                        C E R T I F I C A T E S
+ =====================================================================*/

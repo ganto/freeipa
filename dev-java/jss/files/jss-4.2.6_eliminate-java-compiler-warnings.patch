@@ -1,0 +1,641 @@
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java	2011-08-10 16:21:30.837765000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java	2011-08-12 13:13:34.449664000 -0700
+@@ -1125,7 +1125,7 @@ public final class CryptoManager impleme
+      * Imports a single certificate into the permanent certificate
+      * database.
+      *
+-     * @param derCert the certificate you want to add
++     * @param cert the certificate you want to add
+      * @param nickname the nickname you want to refer to the certificate as
+      *        (must not be null)
+      */
+@@ -1391,11 +1391,11 @@ public final class CryptoManager impleme
+     public static final String
+     JAR_JDK_VERSION     = "JDK_VERSION = N/A";
+     public static final String
+-    JAR_NSS_VERSION     = "NSS_VERSION = NSS_3_11_9_RTM";
++    JAR_NSS_VERSION     = "NSS_VERSION = N/A";
+     public static final String
+     JAR_DBM_VERSION     = "DBM_VERSION = N/A";
+     public static final String
+-    JAR_NSPR_VERSION    = "NSPR_VERSION = NSPR_4_7_RTM";
++    JAR_NSPR_VERSION    = "NSPR_VERSION = N/A";
+ 
+     /**
+      * Loads the JSS dynamic library if necessary.
+@@ -1433,8 +1433,8 @@ public final class CryptoManager impleme
+      * this thread's token to <tt>null</tt> will also cause the
+      * InternalKeyStorageToken to be used.
+      *
+-     * @param The token to use for crypto operations. Specifying <tt>null</tt>
+-     * will cause the InternalKeyStorageToken to be used.
++     * @param token The token to use for crypto operations. Specifying
++     * <tt>null</tt> will cause the InternalKeyStorageToken to be used.
+      */
+     public void setThreadToken(CryptoToken token) {
+         if( token != null ) {
+@@ -1579,7 +1579,7 @@ public final class CryptoManager impleme
+      * Verify a certificate in memory. Check if
+      * valid and that we trust the issuer. Verify time
+      * against Now.
+-     * @param certificate in memory
++     * @param certPackage certificate in memory
+      * @param checkSig verify the signature of the certificate
+      * @param certUsage see exposed certUsage defines to verify Certificate
+      * @return true for success; false otherwise
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/JSSProvider.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/JSSProvider.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/JSSProvider.java	2011-08-10 17:29:33.476661000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/JSSProvider.java	2011-08-12 11:00:26.456852000 -0700
+@@ -51,7 +51,7 @@ public final class JSSProvider extends j
+ 
+     private static int JSS_MAJOR_VERSION  = 4;
+     private static int JSS_MINOR_VERSION  = 2;
+-    private static int JSS_PATCH_VERSION  = 5;
++    private static int JSS_PATCH_VERSION  = 6;
+     private static double JSS_VERSION     = JSS_MAJOR_VERSION +
+                                            (JSS_MINOR_VERSION * 100 +
+                                             JSS_PATCH_VERSION)/10000.0;
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java	2004-04-25 08:02:21.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java	2011-08-12 13:10:50.781827000 -0700
+@@ -144,8 +144,8 @@ public abstract class Cipher {
+      *  <i>B</i> is the block size, the padding string consists of
+      *  <i>B</i> - (<i>M</i> mod <i>B</i>) octets, each having the value
+      *  <i>B</i> - (<i>M</i> mod <i>B</i>).
+-     * @param The block size of the encryption algorithm.  Must be greater
+-     *  than zero.
++     * @param blockSize The block size of the encryption algorithm.
++     *  Must be greater than zero.
+      * @see #unPad
+      */
+     public static byte[]
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java	2007-11-09 16:37:56.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java	2011-08-12 11:07:20.326438000 -0700
+@@ -194,7 +194,7 @@ public interface CryptoToken {
+      * Login to the token. If a token is logged in, it will not trigger
+      * password callbacks.
+      *
+-     * @param password The password for this token.
++     * @param pwcb The password callback for this token.
+      * @exception IncorrectPasswordException If the supplied password is
+      *  incorrect.
+      * @see #setLoginMode
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java	2004-04-25 08:02:21.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java	2011-08-12 11:08:37.747360000 -0700
+@@ -88,7 +88,7 @@ public abstract class JSSMessageDigest {
+      * Completes digestion.
+      * 
+      * @return The, ahem, output of the digest operation.
+-     * @param If an error occurs while digesting.
++     * @exception DigestException If an error occurs while digesting.
+      */
+     public byte[] digest() throws DigestException {
+         byte[] output = new byte[getOutputSize()];
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/PBEKeyGenParams.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/PBEKeyGenParams.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/PBEKeyGenParams.java	2004-04-25 08:02:21.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/PBEKeyGenParams.java	2011-08-12 11:09:41.345296000 -0700
+@@ -60,7 +60,7 @@ public class PBEKeyGenParams implements 
+      *      Must not be null. It is the responsibility of the caller to
+      *      use the right salt length for the algorithm. Most algorithms
+      *      use 8 bytes of salt.
+-     * @param The iteration count for the PBE algorithm.
++     * @param iterations The iteration count for the PBE algorithm.
+      */
+     public PBEKeyGenParams(Password pass, byte[] salt, int iterations) {
+         if(pass==null || salt==null) {
+@@ -80,7 +80,7 @@ public class PBEKeyGenParams implements 
+      *      Must not be null. It is the responsibility of the caller to
+      *      use the right salt length for the algorithm. Most algorithms
+      *      use 8 bytes of salt.
+-     * @param The iteration count for the PBE algorithm.
++     * @param iterations The iteration count for the PBE algorithm.
+      */
+     public PBEKeyGenParams(char[] pass, byte[] salt, int iterations) {
+         if(pass==null || salt==null) {
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11Token.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11Token.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11Token.java	2007-11-09 16:37:57.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs11/PK11Token.java	2011-08-12 11:13:51.807047000 -0700
+@@ -228,8 +228,8 @@ public final class PK11Token implements 
+      * Initialize PIN.  This sets the user's new PIN, using the current
+      * security officer PIN for authentication.
+      *
+-     * @param ssopw The security officer's current password.
+-     * @param userpw The user's new password.
++     * @param ssopwcb The security officer's current password callback.
++     * @param userpwcb The user's new password callback.
+      * @exception IncorrectPinException If the security officer PIN is
+      *  incorrect.
+      * @exception TokenException If the PIN was already initialized,
+@@ -322,8 +322,8 @@ public final class PK11Token implements 
+      * Change password.  This changes the user's PIN after it has already
+      * been initialized.
+      *
+-     * @param oldPIN The user's old PIN.
+-     * @param newPIN The new PIN.
++     * @param oldPINcb The user's old PIN callback.
++     * @param newPINcb The new PIN callback.
+      * @exception IncorrectPasswordException If the old PIN is incorrect.
+      * @exception TokenException If some other error occurs on the token.
+      *
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs12/SafeBag.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs12/SafeBag.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs12/SafeBag.java	2005-09-22 10:58:35.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs12/SafeBag.java	2011-08-12 11:14:44.011995000 -0700
+@@ -288,7 +288,7 @@ public final class SafeBag implements AS
+      *      as the nickname of the associated cert.
+      * @param localKeyID The localKeyID for the key; should be the same as
+      *      the localKeyID of the associated cert.
+-     * @param The password used to encrypt the private key.
++     * @param password The password used to encrypt the private key.
+      */
+     public static SafeBag
+     createEncryptedPrivateKeyBag(PrivateKeyInfo privk, String friendlyName,
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs7/SignerInfo.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs7/SignerInfo.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs7/SignerInfo.java	2004-04-25 08:02:23.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkcs7/SignerInfo.java	2011-08-12 11:12:13.957145000 -0700
+@@ -430,7 +430,6 @@ public class SignerInfo implements ASN1V
+      *  SignerInfo.
+      * @param contentType The type of the content that is signed by this
+      *  SignerInfo.
+-     * @param pubkey The public key to use to verify the signature.
+      * @exception NoSuchObjectException If no certificate matching the
+      *      the issuer name and serial number can be found.
+      */
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmc/CMCStatusInfo.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmc/CMCStatusInfo.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmc/CMCStatusInfo.java	2004-11-18 14:56:11.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmc/CMCStatusInfo.java	2011-08-12 11:20:39.240639000 -0700
+@@ -108,7 +108,7 @@ public class CMCStatusInfo implements AS
+      * @param status A CMCStatus constant.
+      * @param bodyList The sequence of bodyPartID.
+      * @param statusString A String.
+-     * @param OtherInfo The OtherInfo choice.
++     * @param otherInfo The OtherInfo choice.
+      */
+     public CMCStatusInfo(int status, SEQUENCE bodyList, String
+ 						 statusString, OtherInfo otherInfo) {
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmmf/PKIStatusInfo.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmmf/PKIStatusInfo.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmmf/PKIStatusInfo.java	2006-05-23 20:18:17.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/cmmf/PKIStatusInfo.java	2011-08-12 11:21:27.389591000 -0700
+@@ -88,7 +88,6 @@ public class PKIStatusInfo implements AS
+     /**
+      * Create a PKIStatusInfo with no failure info.
+      * @param status A PKIStatus constant.
+-     * @param failInfo The bitwise AND of the PKIFailureInfo constants.
+      */
+     public PKIStatusInfo(int status) {
+         this.status = new INTEGER(status);
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/primitive/DirectoryString.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/primitive/DirectoryString.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/primitive/DirectoryString.java	2004-04-25 08:02:26.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/pkix/primitive/DirectoryString.java	2011-08-12 11:20:11.194667000 -0700
+@@ -115,10 +115,6 @@ public class DirectoryString implements 
+ 
+     /**
+      * Converts an ASN.1 DirectoryString to a Java string.
+-     *
+-     * @param dirstr An ANY containing a BER-encoded DirectoryString.
+-     * @exception InvalidBERException If the encoding does not contain a
+-     *      valid DirectoryString.
+      */
+     public String toString() {
+         return asn1String.toString();
+@@ -176,6 +172,8 @@ public class DirectoryString implements 
+         /**
+          * @param implicitTag <b>This paramter is ignored</b>, because
+          *      DirectoryStrings (being CHOICEs) cannot have implicit tags.
++         * @exception InvalidBERException If the encoding does not contain a
++         *      valid DirectoryString.
+          */
+         public ASN1Value decode(Tag implicitTag, InputStream istream)
+             throws IOException, InvalidBERException
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/provider/javax/crypto/JSSSecretKeyFactorySpi.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/provider/javax/crypto/JSSSecretKeyFactorySpi.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/provider/javax/crypto/JSSSecretKeyFactorySpi.java	2003-04-28 14:48:33.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/provider/javax/crypto/JSSSecretKeyFactorySpi.java	2011-08-12 10:58:39.589958000 -0700
+@@ -91,14 +91,18 @@ class JSSSecretKeyFactorySpi extends Sec
+         // versions is to use the reflection API.
+         Class specClass = spec.getClass();
+         try {
+-            Method getSaltMethod = specClass.getMethod("getSalt", null);
++            Method getSaltMethod = specClass.getMethod("getSalt",
++                                       (java.lang.Class) null);
+             Method getIterationMethod =
+-                specClass.getMethod("getIterationCount", null);
++                specClass.getMethod("getIterationCount",
++                                    (java.lang.Class) null);
+ 
+-            byte[] salt = (byte[]) getSaltMethod.invoke(spec, null);
++            byte[] salt = (byte[]) getSaltMethod.invoke(spec,
++                                       (java.lang.Class) null);
+             
+             Integer itCountObj =
+-                (Integer) getIterationMethod.invoke(spec,null);
++                (Integer) getIterationMethod.invoke(spec,
++                                                    (java.lang.Class) null);
+             int iterationCount = itCountObj.intValue();
+ 
+             Password pass = new Password(spec.getPassword());
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/ssl/SSLSocket.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/ssl/SSLSocket.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/ssl/SSLSocket.java	2011-08-10 16:21:30.412765000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/ssl/SSLSocket.java	2011-08-12 11:47:38.385021000 -0700
+@@ -182,11 +182,11 @@ public class SSLSocket extends java.net.
+     }
+ 
+     /**
+-     * Creates an SSL client socket and connects to the specified host and
++     * Creates an SSL client socket and connects to the specified address and
+      *  port. Binds to the given local address and port. Installs the given
+      *  callbacks for certificate approval and client certificate selection.
+      *
+-     * @param host The hostname to connect to.
++     * @param address The IP address to connect to.
+      * @param port The port to connect to.
+      * @param localAddr The local address to bind to. It can be null, in which
+      *      case an unspecified local address will be chosen.
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/HMACTest.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/HMACTest.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/HMACTest.java	2006-02-23 08:47:17.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/HMACTest.java	2011-08-12 13:11:11.790805000 -0700
+@@ -96,7 +96,7 @@ public class HMACTest {
+ 
+     /**
+      * Main test method.
+-     * @params args[]
++     * @param argv
+      */
+     public static void main(String []argv) {
+ 
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java	2011-08-10 16:21:30.337766000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java	2011-08-12 11:53:56.192644000 -0700
+@@ -116,9 +116,9 @@ public class JCASymKeyGen {
+     }
+     /**
+      * 
+-     * @param key
+-     * @param kg
+-     * @return
++     * @param keyType
++     * @param provider
++     * @return javax.crypto.SecretKey key
+      */
+     public javax.crypto.SecretKey genSecretKey(String keyType, String provider){
+         javax.crypto.SecretKey key = null;
+@@ -155,7 +155,7 @@ public class JCASymKeyGen {
+      * 
+      * @param keyType 
+      * @param provider 
+-     * @return 
++     * @return javax.crypto.SecretKey key
+      */
+     public javax.crypto.SecretKey genPBESecretKey(String keyType,
+             String provider){
+@@ -197,8 +197,10 @@ public class JCASymKeyGen {
+     /**
+      *
+      * @param sKey
+-     * @param AlgType
+-     * @param provider
++     * @param algFamily
++     * @param algType
++     * @param providerForEncrypt
++     * @param providerForDecrypt
+      */
+     public void testCipher(javax.crypto.SecretKey sKey, String algFamily,
+             String algType, String providerForEncrypt, String providerForDecrypt)
+@@ -304,8 +306,10 @@ public class JCASymKeyGen {
+     /**
+      *
+      * @param sKey
+-     * @param AlgType
+-     * @param provider
++     * @param algFamily
++     * @param algType
++     * @param providerForEncrypt
++     * @param providerForDecrypt
+      */
+     public void testMultiPartCipher(javax.crypto.SecretKey sKey, String algFamily,
+             String algType, String providerForEncrypt, String providerForDecrypt)
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLClient.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLClient.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLClient.java	2007-11-15 13:30:19.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLClient.java	2011-08-12 12:56:15.480701000 -0700
+@@ -78,7 +78,7 @@ public class JSSE_SSLClient {
+     
+     /**
+      * Set the protocol type and revision
+-     * @param String sslRevision
++     * @param fSslRevision
+      */
+     public void setSslRevision(String fSslRevision) {
+         
+@@ -91,7 +91,7 @@ public class JSSE_SSLClient {
+     
+     /**
+      * Set the host name to connect to.
+-     * @param String hostname
++     * @param fHost
+      */
+     public void setHost(String fHost) {
+         this.host = fHost;
+@@ -99,7 +99,7 @@ public class JSSE_SSLClient {
+     
+     /**
+      * Set the port number to connect to.
+-     * @param int portnumber
++     * @param fPort
+      */
+     public void setPort(int fPort) {
+         this.port = fPort;
+@@ -107,7 +107,7 @@ public class JSSE_SSLClient {
+     
+     /**
+      * Set the cipher suite name to use.
+-     * @param String cipherSuiteName
++     * @param fCipherSuite
+      */
+     public void setCipherSuite(String fCipherSuite) {
+         this.cipherName = fCipherSuite;
+@@ -115,7 +115,7 @@ public class JSSE_SSLClient {
+     
+     /**
+      * Set the location of rsa.pfx
+-     * @param String fKeystoreLoc
++     * @param fKeystoreLoc
+      */
+     public void setKeystoreLoc(String fKeystoreLoc) {
+         keystoreLoc = fKeystoreLoc + "/" + keystoreLoc;
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLServer.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLServer.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLServer.java	2007-11-15 13:30:19.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSSE_SSLServer.java	2011-08-12 12:57:18.987637000 -0700
+@@ -75,7 +75,7 @@ public class JSSE_SSLServer {
+     
+        /**
+      * Set the provider to use.
+-     * @param String p
++     * @param p
+      */
+     public void setProvider(String p) {
+         provider = p;
+@@ -90,7 +90,7 @@ public class JSSE_SSLServer {
+     }
+     /**
+      * Set the location of keystore file.
+-     * @param String fconfigDir
++     * @param fconfigDir
+      */
+     public void setKeystore(String fconfigDir) {
+         configDir = fconfigDir;
+@@ -117,7 +117,7 @@ public class JSSE_SSLServer {
+     
+     /**
+      * Start SSLServer and accept connections.
+-     * @param args[]
++     * @param args
+      */
+     public void startSSLServer(String[] args) throws Exception {
+         String configDir = "";
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_FileUploadClient.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_FileUploadClient.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_FileUploadClient.java	2005-08-11 11:28:59.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_FileUploadClient.java	2011-08-12 12:50:45.946239000 -0700
+@@ -79,7 +79,7 @@ public class JSS_FileUploadClient {
+     /**
+      * Initialize the desired cipher to be set
+      * on the socket.
+-     * @param int Cipher
++     * @param aCipher
+      */
+     public void setCipher(int aCipher) {
+         fCipher = aCipher;
+@@ -87,7 +87,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Initialize the hostname to run the server
+-     * @param String ServerName
++     * @param aHostName
+      */
+     public void setHostName(String aHostName) {
+         serverHost = aHostName;
+@@ -95,7 +95,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Initialize the port to run the server
+-     * @param int port
++     * @param aPort
+      */
+     public void setPort(int aPort) {
+         port = aPort;
+@@ -103,7 +103,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Initialize the passwords file name
+-     * @param String passwords
++     * @param aPasswordFile
+      */
+     public void setPasswordFile(String aPasswordFile) {
+         fPasswordFile = aPasswordFile;
+@@ -111,7 +111,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Initialize the cert db path name
+-     * @param String CertDbPath
++     * @param aCertDbPath
+      */
+     public void setCertDbPath(String aCertDbPath) {
+         fCertDbPath = aCertDbPath;
+@@ -120,7 +120,7 @@ public class JSS_FileUploadClient {
+     /**
+      * Initialize the name of the file to
+      * be used for testing along with full path.
+-     * @param String UploadFile
++     * @param aUploadFile
+      */
+     public void setUploadFile(String aUploadFile) {
+         fUploadFile = aUploadFile;
+@@ -128,7 +128,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Enable/disable Test Cert Callback.
+-     * @param boolean
++     * @param aTestCertCallback
+      */
+     public void setTestCertCallback(boolean aTestCertCallback) {
+         TestCertCallBack = aTestCertCallback;
+@@ -136,7 +136,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Set client certificate
+-     * @param String Certificate Nick Name
++     * @param aClientCertNick Certificate Nick Name
+      */
+     public void setClientCertNick(String aClientCertNick) {
+         clientCertNick = aClientCertNick;
+@@ -170,7 +170,7 @@ public class JSS_FileUploadClient {
+     
+     /**
+      * Set EOF for closinng server socket
+-     * @param null for closing server socket
++     * @param fEof null for closing server socket
+      */
+     public void setEOF(String fEof) {
+         this.EOF = fEof;
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SSLClient.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SSLClient.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SSLClient.java	2007-08-20 17:07:58.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SSLClient.java	2011-08-12 12:54:46.978789000 -0700
+@@ -99,7 +99,7 @@ public class JSS_SSLClient {
+     /**
+      * Initialize the desired cipher to be set
+      * on the socket.
+-     * @param int Cipher
++     * @param aCipher
+      */
+     public void setCipher(int aCipher) {
+         fCipher = aCipher;
+@@ -107,7 +107,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Initialize the hostname to run the server
+-     * @param String ServerName
++     * @param aHostName
+      */
+     public void setHostName(String aHostName) {
+         serverHost = aHostName;
+@@ -115,7 +115,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Initialize the port to run the server
+-     * @param int port
++     * @param aPort
+      */
+     public void setPort(int aPort) {
+         port = aPort;
+@@ -123,7 +123,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Initialize the passwords file name
+-     * @param String passwords
++     * @param aPasswordFile
+      */
+     public void setPasswordFile(String aPasswordFile) {
+         fPasswordFile = aPasswordFile;
+@@ -131,7 +131,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Initialize the cert db path name
+-     * @param String CertDbPath
++     * @param aCertDbPath
+      */
+     public static void setCertDbPath(String aCertDbPath) {
+         fCertDbPath = aCertDbPath;
+@@ -147,7 +147,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Enable/disable Test Cert Callback.
+-     * @param boolean
++     * @param bypass
+      */
+     public void setBypass(boolean bypass) {
+         testBypass = bypass;
+@@ -155,7 +155,7 @@ public class JSS_SSLClient {
+ 
+     /**
+      * Enable/disable Test Cert Callback.
+-     * @param boolean
++     * @param aTestCertCallback
+      */
+     public void setTestCertCallback(boolean aTestCertCallback) {
+         TestCertCallBack = aTestCertCallback;
+@@ -163,7 +163,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Set client certificate
+-     * @param String Certificate Nick Name
++     * @param aClientCertNick Certificate Nick Name
+      */
+     public void setClientCertNick(String aClientCertNick) {
+         clientCertNick = aClientCertNick;
+@@ -197,7 +197,7 @@ public class JSS_SSLClient {
+     
+     /**
+      * Set EOF for closinng server socket
+-     * @param null for closing server socket
++     * @param fEof null for closing server socket
+      */
+     public void setEOF(String fEof) {
+         this.EOF = fEof;
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SelfServClient.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SelfServClient.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SelfServClient.java	2007-11-15 13:30:19.000000000 -0800
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JSS_SelfServClient.java	2011-08-12 12:52:43.644913000 -0700
+@@ -326,7 +326,7 @@ public class JSS_SelfServClient implemen
+     /**
+      * Initialize the desired ciphersuite to be set
+      * on the socket.
+-     * @param int Cipher
++     * @param aCipher
+      */
+     public void setCipher(int aCipher) {
+         
+@@ -378,7 +378,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Initialize the hostname to run the server
+-     * @param String ServerName
++     * @param aHostName
+      */
+     public void setHostName(String aHostName) {
+         serverHost = aHostName;
+@@ -386,7 +386,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Initialize the port to run the server
+-     * @param int port
++     * @param aPort
+      */
+     public void setPort(int aPort) {
+         port = aPort;
+@@ -394,7 +394,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Initialize the passwords file name
+-     * @param String passwords
++     * @param aPasswordFile
+      */
+     public void setPasswordFile(String aPasswordFile) {
+         fPasswordFile = aPasswordFile;
+@@ -402,7 +402,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Initialize the cert db path name
+-     * @param String CertDbPath
++     * @param aCertDbPath
+      */
+     public void setCertDbPath(String aCertDbPath) {
+         fCertDbPath = aCertDbPath;
+@@ -410,7 +410,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Enable/disable Test Cert Callback.
+-     * @param boolean
++     * @param aTestCertCallback
+      */
+     public void setTestCertCallback(boolean aTestCertCallback) {
+         TestCertCallBack = aTestCertCallback;
+@@ -418,7 +418,7 @@ public class JSS_SelfServClient implemen
+     
+     /**
+      * Set client certificate
+-     * @param String Certificate Nick Name
++     * @param aClientCertNick Certificate Nick Name
+      */
+     public void setClientCertNick(String aClientCertNick) {
+         clientCertNick = aClientCertNick;
+diff -rupN alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SSLClientAuth.java java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SSLClientAuth.java
+--- alt-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SSLClientAuth.java	2007-08-23 16:21:13.000000000 -0700
++++ java-jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SSLClientAuth.java	2011-08-12 12:58:27.925569000 -0700
+@@ -78,7 +78,7 @@ public class SSLClientAuth implements Ru
+      * @param rand
+      * @param extensions
+      * @throws java.lang.Exception
+-     * @return
++     * @return Certificate
+      */
+     public static Certificate makeCert(String issuerName, String subjectName,
+             int serialNumber, PrivateKey privKey, PublicKey pubKey, int rand,

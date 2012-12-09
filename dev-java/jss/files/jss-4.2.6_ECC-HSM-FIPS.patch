@@ -1,0 +1,62 @@
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.c.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.c
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.c.orig	2011-05-18 10:01:36.792151000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.c	2011-05-18 10:06:07.483691000 -0700
+@@ -110,6 +110,7 @@ JSS_AlgInfo JSS_AlgTable[NUM_ALGS] = {
+ /* 47 */    {SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE, SEC_OID_TAG},
+ /* 48 */    {SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE, SEC_OID_TAG},
+ /* 49 */    {SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE, SEC_OID_TAG},
++/* 50 */    {SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST, SEC_OID_TAG},
+ /* REMEMBER TO UPDATE NUM_ALGS!!! */
+ };
+ 
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.h.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.h
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.h.orig	2011-05-18 10:01:43.561164000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.h	2011-05-18 10:06:07.489690000 -0700
+@@ -56,7 +56,7 @@ typedef struct JSS_AlgInfoStr {
+     JSS_AlgType type;
+ } JSS_AlgInfo;
+ 
+-#define NUM_ALGS 50
++#define NUM_ALGS 51
+ 
+ extern JSS_AlgInfo JSS_AlgTable[];
+ extern CK_ULONG JSS_symkeyUsage[];
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.java.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.java
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.java.orig	2011-05-18 10:01:51.232179000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Algorithm.java	2011-05-18 10:06:07.493690000 -0700
+@@ -232,5 +232,6 @@ public class Algorithm {
+     protected static final short SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE=47;
+     protected static final short SEC_OID_ANSIX962_ECDSA_SHA384_SIGNATURE=48;
+     protected static final short SEC_OID_ANSIX962_ECDSA_SHA512_SIGNATURE=49;
++    protected static final short SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST=50;
+ 
+ }
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairAlgorithm.java.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairAlgorithm.java
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairAlgorithm.java.orig	2011-05-18 10:02:01.056198000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairAlgorithm.java	2011-05-18 13:46:33.452948000 -0700
+@@ -94,7 +94,12 @@ public class KeyPairAlgorithm extends Al
+     DSAFamily = new Algorithm(SEC_OID_ANSIX9_DSA_SIGNATURE, "DSA");
+ 
+     public static final Algorithm
+-    ECFamily = new Algorithm(SEC_OID_ANSIX962_EC_PUBLIC_KEY, "EC");
++
++//    To support both ECDSA and ECDH, it is best to provide two EC Families;
++//    However, since there is no token that does only CKM_DERIVE to
++//    date, we will just do ECDSA for now as it is sufficient enough today.
++//    This fix will support tokens that do not do ECDH
++    ECFamily = new Algorithm(SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST, "EC");
+ 
+     public static final KeyPairAlgorithm
+     RSA = new KeyPairAlgorithm(CKM_RSA_PKCS_KEY_PAIR_GEN, "RSA", RSAFamily);
+diff -up jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/SignatureAlgorithm.java.orig jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/SignatureAlgorithm.java
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/SignatureAlgorithm.java.orig	2011-05-18 10:02:10.696218000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/SignatureAlgorithm.java	2011-05-18 10:06:07.496691000 -0700
+@@ -124,7 +124,7 @@ public class SignatureAlgorithm extends 
+      * operates on its input, which should be a hash.
+      */
+     public static final SignatureAlgorithm
+-    ECSignature = new SignatureAlgorithm(SEC_OID_ANSIX962_EC_PUBLIC_KEY, 
++    ECSignature = new SignatureAlgorithm(SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST, 
+ 	"EC",
+         null, null, ANSI_X962_OID.subBranch(2).subBranch(1) );
+ 

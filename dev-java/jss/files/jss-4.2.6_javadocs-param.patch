@@ -1,0 +1,13 @@
+--- jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java.orig	2008-01-18 16:39:46.000000000 -0500
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/JCASymKeyGen.java	2009-06-05 11:08:54.000000000 -0400
+@@ -116,7 +116,9 @@
+     }
+     /**
+      * 
+-     * @param  
++     * @param key
++     * @param kg
++     * @return
+      */
+     public javax.crypto.SecretKey genSecretKey(String keyType, String provider){
+         javax.crypto.SecretKey key = null;

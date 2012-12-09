@@ -1,0 +1,29 @@
+diff -uN --recursive jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/CryptoManager.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/CryptoManager.java	2008-01-31 17:29:16.000000000 -0500
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/CryptoManager.java	2010-01-07 10:47:04.000000000 -0500
+@@ -1334,11 +1334,20 @@
+      */
+     synchronized static void loadNativeLibraries()
+     {
+-        if( ! mNativeLibrariesLoaded )
+-        {
+-            System.loadLibrary("jss4");
+-            Debug.trace(Debug.VERBOSE, "jss library loaded");
+-            mNativeLibrariesLoaded = true;
++        if( ! mNativeLibrariesLoaded ) {
++            try {
++                System.load( "/usr/lib64/jss/libjss4.so" );
++                Debug.trace(Debug.VERBOSE, "jss library loaded");
++                mNativeLibrariesLoaded = true;
++            } catch( UnsatisfiedLinkError e ) {
++                try {
++                    System.load( "/usr/lib/jss/libjss4.so" );
++                    Debug.trace(Debug.VERBOSE, "jss library loaded");
++                    mNativeLibrariesLoaded = true;
++                } catch( UnsatisfiedLinkError f ) {
++                    Debug.trace(Debug.VERBOSE, "jss library load failed");
++                }
++            }
+         }
+     }
+     static private boolean mNativeLibrariesLoaded = false;

@@ -1,0 +1,171 @@
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java	2012-03-20 16:30:26.570338000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Cipher.java	2012-03-20 16:39:59.083196000 -0700
+@@ -49,7 +49,6 @@ import org.mozilla.jss.util.Assert;
+  * it is not necessary to call <code>update</code> if all of the data is
+  * available at once.  In this case, all of the input can be processed with one
+  * call to <code>doFinal</code>.
+- * @deprecated Use the JCA interface instead ({@link javax.crypto.Cipher})
+  */
+ public abstract class Cipher {
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java	2012-03-20 16:30:26.587338000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/CryptoToken.java	2012-03-20 16:41:54.792964000 -0700
+@@ -60,7 +60,6 @@ public interface CryptoToken {
+      * @param algorithm The algorithm used for the signing/verification.
+      * @exception java.security.NoSuchAlgorithmException If the given
+      *      algorithm is not supported by this provider.
+-     * @deprecated Use the JCA interface instead ({@link java.security.Signature})
+      */
+     public abstract org.mozilla.jss.crypto.Signature
+     getSignatureContext(SignatureAlgorithm algorithm)
+@@ -73,7 +72,6 @@ public interface CryptoToken {
+      * @param algorithm The algorithm used for digesting.
+      * @exception java.security.NoSuchAlgorithmException If this provider
+      *  does not support the given algorithm.
+-     * @deprecated Use the JCA interface instead ({@link java.security.MessageDigest})
+      */
+     public abstract JSSMessageDigest
+     getDigestContext(DigestAlgorithm algorithm)
+@@ -89,15 +87,11 @@ public interface CryptoToken {
+      * @param algorithm The algorithm used for encryption/decryption.
+      * @exception java.security.NoSuchAlgorithmException If this provider
+      *      does not support the given algorithm.
+-     * @deprecated Use the JCA interface instead ({@link javax.crypto.Cipher})
+      */
+     public abstract Cipher
+     getCipherContext(EncryptionAlgorithm algorithm)
+         throws java.security.NoSuchAlgorithmException, TokenException;
+ 
+-    /**
+-     * @deprecated Use the JCA interface instead ({@link javax.crypto.Cipher})
+-     */
+     public abstract KeyWrapper
+     getKeyWrapper(KeyWrapAlgorithm algorithm)
+         throws java.security.NoSuchAlgorithmException, TokenException;
+@@ -123,7 +117,6 @@ public interface CryptoToken {
+      * @param algorithm The algorithm that the keys will be used with.
+      * @exception java.security.NoSuchAlgorithmException If this token does not
+      *      support the given algorithm.
+-     * @deprecated Use the JCA interface instead ({@link javax.crypto.KeyGenerator})
+      */
+     public abstract KeyGenerator
+     getKeyGenerator(KeyGenAlgorithm algorithm)
+@@ -136,7 +129,6 @@ public interface CryptoToken {
+      *      cannot be extracted from the current token.
+      * @exception InvalidKeyException If the owning token cannot process
+      *      the key to be cloned.
+-     * @deprecated Use the JCA interface instead ({@link javax.crypto.SecretKeyFactory})
+      */
+     public SymmetricKey cloneKey(SymmetricKey key)
+         throws SymmetricKey.NotExtractableException,
+@@ -151,7 +143,6 @@ public interface CryptoToken {
+      *      DSA, EC, etc.)
+      * @exception java.security.NoSuchAlgorithmException If this token does
+      *      not support the given algorithm.
+-     * @deprecated Use the JCA interface instead ({@link java.security.KeyPairGenerator})
+      */
+     public abstract KeyPairGenerator
+     getKeyPairGenerator(KeyPairAlgorithm algorithm)
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java	2012-03-20 16:30:26.595338000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSMessageDigest.java	2012-03-20 16:38:31.987370000 -0700
+@@ -41,7 +41,6 @@ import java.security.InvalidKeyException
+ 
+ /**
+  * A class for performing message digesting (hashing) and MAC operations.
+- * @deprecated Use the JCA interface instead ({@link java.security.MessageDigest})
+  */
+ public abstract class JSSMessageDigest {
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/JSSSecureRandom.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSSecureRandom.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/JSSSecureRandom.java	2004-04-25 08:02:21.000000000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/JSSSecureRandom.java	2012-03-20 16:39:02.938308000 -0700
+@@ -38,7 +38,6 @@ package org.mozilla.jss.crypto;
+ 
+ /**
+  * An interface for secure random numbers.
+- * @deprecated Use the JCA interface instead ({@link java.security.SecureRandom})
+  */
+ public interface JSSSecureRandom {
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyGenerator.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyGenerator.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyGenerator.java	2005-11-14 14:15:06.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyGenerator.java	2012-03-20 16:39:19.687274000 -0700
+@@ -43,7 +43,6 @@ import java.io.CharConversionException;
+ 
+ /**
+  * Generates symmetric keys for encryption and decryption.
+- * @deprecated Use the JCA interface instead ({@link javax.crypto.KeyGenerator})
+  */
+ public interface KeyGenerator {
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java	2012-03-20 16:30:25.755340000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyPairGenerator.java	2012-03-20 16:38:03.635426000 -0700
+@@ -49,7 +49,6 @@ import java.security.spec.AlgorithmParam
+  * <code>keygenOnInternalToken</code> to find out if this is happening.
+  *
+  * @see org.mozilla.jss.crypto.CryptoToken#getKeyPairGenerator
+- * @deprecated Use the JCA interface instead ({@link java.security.KeyPairGenerator})
+  */
+ public class KeyPairGenerator {
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyWrapper.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyWrapper.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/KeyWrapper.java	2004-04-25 08:02:21.000000000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/KeyWrapper.java	2012-03-20 16:39:40.551232000 -0700
+@@ -40,9 +40,6 @@ import java.security.InvalidAlgorithmPar
+ import java.security.PublicKey;
+ import java.security.InvalidKeyException;
+ 
+-/**
+- * @deprecated Use the JCA interface instead ({@link javax.crypto.Cipher})
+- */
+ public interface KeyWrapper {
+ 
+     public void initWrap(SymmetricKey wrappingKey,
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/Signature.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Signature.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/crypto/Signature.java	2004-04-25 08:02:21.000000000 -0700
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/crypto/Signature.java	2012-03-20 16:38:46.468340000 -0700
+@@ -44,7 +44,6 @@ import java.security.spec.AlgorithmParam
+  * Instances of this class can be obtain from <code>CryptoToken</code>s.
+  *
+  * @see org.mozilla.jss.crypto.CryptoToken#getSignatureContext
+- * @deprecated Use the JCA interface instead ({@link java.security.Signature})
+  */
+ public class Signature { 
+ 
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/tests/SigTest.java jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SigTest.java
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/tests/SigTest.java	2005-11-23 15:40:26.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/SigTest.java	2012-03-20 16:35:13.653766000 -0700
+@@ -37,15 +37,10 @@
+ 
+ /* This program demonstrates how to sign data with keys from JSS
+  *
+- * Most of this code is deprecated look at JCASigTest.java
+- *
+  * The token name can be either the name of a hardware token, or
+  * one of the internal tokens:
+  *  Internal Crypto Services Token
+  *  Internal Key Storage Token    (keys stored in key3.db)
+- *
+- * @see org.mozilla.jss.tests.JCASigTest
+- * @deprecated Use the JCA interface instead
+  */
+ 
+ package org.mozilla.jss.tests;
+diff -rupN jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/tests/all.pl jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/all.pl
+--- jss-4.2.6.orig/mozilla/security/jss/org/mozilla/jss/tests/all.pl	2007-12-20 10:38:44.000000000 -0800
++++ jss-4.2.6/mozilla/security/jss/org/mozilla/jss/tests/all.pl	2012-03-20 16:36:37.711598000 -0700
+@@ -534,6 +534,10 @@ $testname = "Mozilla-JSS JCA Signature "
+ $command = "$java -cp $jss_classpath org.mozilla.jss.tests.JCASigTest $testdir $pwfile";
+ run_test($testname, $command);
+ 
++$testname = "Mozilla-JSS NSS Signature ";
++$command = "$java -cp $jss_classpath org.mozilla.jss.tests.SigTest $testdir $pwfile";
++run_test($testname, $command);
++
+ $testname = "Secret Decoder Ring";
+ $command = "$java -cp $jss_classpath org.mozilla.jss.tests.TestSDR $testdir $pwfile";
+ run_test($testname, $command);
