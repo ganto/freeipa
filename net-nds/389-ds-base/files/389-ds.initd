@@ -69,6 +69,8 @@ status_instance() {
 start() {
 	checkconfig || return 1
 	[ ! -e ${PID_DIRECTORY} ] && mkdir ${PID_DIRECTORY}
+	chown dirsrv:dirsrv ${PID_DIRECTORY}
+	chmod 664 ${PID_DIRECTORY}
 
 	if [ -z "${F389DS_INSTANCE}" ]; then
 		sts=0
@@ -83,7 +85,7 @@ start() {
 			sts=$((${sts}|${ret}))
 		done
 	else
-		start_instance ${F389DS_INSTANCE}
+		start_instance slapd-${F389DS_INSTANCE}
 		sts=${?}
 	fi
 	return ${sts}
@@ -100,7 +102,7 @@ stop() {
 			stop_instance ${instance}
 		done
 	else
-		stop_instance ${F389DS_INSTANCE}
+		stop_instance slapd-${F389DS_INSTANCE}
 	fi
 }
 
@@ -113,6 +115,6 @@ status() {
 			status_instance ${instance}
 		done
 	else
-		status_instance ${F389DS_INSTANCE}
+		status_instance slapd-${F389DS_INSTANCE}
 	fi
 }
