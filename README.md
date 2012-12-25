@@ -13,6 +13,7 @@ This Gentoo overlay should act as a brewery for FreeIPA related ebuilds. It cont
 * **dev-java/osutil** (2.0.2) - Operating System Utilities JNI Package
 * **dev-java/tomcatjss** (6.0.1) - JSSE implementation using JSS for Tomcat
 * **dev-python/python-krbV** (1.0.90) - Python extension module for Kerberos 5
+* **media-gfx/ipa-pki-theme** (9.0.5) - PKI User Interface utilized by IPA
 * **net-nds/389-ds-base** (1.2.11.15) - 389 Directory Server (core librares and daemons)
 
 So far, the FreeIPA ebuild is able to successfully configure a Gentoo box as nearly fully-featured IPA client. For server support a lot more ebuilds of dependencies are required to be written yet. Any help is appreciated.
