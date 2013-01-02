@@ -11,17 +11,18 @@ inherit java-pkg-2 java-ant-2
 DESCRIPTION="JSSE implementation using JSS for Tomcat"
 HOMEPAGE="http://pki.fedoraproject.org"
 SRC_URI="http://pki.fedoraproject.org/pki/sources/${PN}/${P}.tar.gz"
-
 LICENSE="LGPL-2"
-SLOT="0"
 KEYWORDS="~amd64 ~x86"
+
+TOMCAT_API=${PV%%.*}
+SLOT="${TOMCAT_API}"
 
 IUSE=""
 
 COMMON_DEP="dev-java/commons-logging
             =dev-java/jss-4.2.6
             !!dev-java/tomcat-native
-            www-servers/tomcat:6"
+            www-servers/tomcat:${TOMCAT_API}"
 
 RDEPEND=">=virtual/jre-1.6
          ${COMMON_DEP}"
@@ -34,7 +35,7 @@ EANT_DOC_TARGET=""
 src_compile() {
 	eant \
 		-Djss.jar="$(java-pkg_getjars jss-3.4)" \
-		-Dtomcat-coyote.jar="$(java-pkg_getjar tomcat-6 tomcat-coyote.jar)" \
+		-Dtomcat-coyote.jar="$(java-pkg_getjar tomcat-${TOMCAT_API} tomcat-coyote.jar)" \
 		-Dcommons-logging.jar="$(java-pkg_getjar commons-logging commons-logging-api.jar)"
 		${antflags}
 }
