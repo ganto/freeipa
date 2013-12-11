@@ -1,0 +1,6 @@
+####################################################################
+# Mask packages that are not at all ready to use
+
+# Reto Gantenbein <reto.gantenbein@linuxmonk.ch> (12 Dec 2013)
+# Mask FreeIPA-3.x with Tomcat-7.0.x for now
+>=dev-java/tomcatjss-7.0.0
