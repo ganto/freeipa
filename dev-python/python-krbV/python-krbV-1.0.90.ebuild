@@ -1,12 +1,11 @@
-# Copyright 1999-2012 Gentoo Foundation
+# Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: $
 
-EAPI=4
+EAPI=6
 
-PYTHON_DEPEND="2:2.7"
+PYTHON_COMPAT=( python2_7 )
 
-inherit python
+inherit python-any-r1
 
 DESCRIPTION="Python extension module for Kerberos 5"
 HOMEPAGE="https://fedorahosted.org/python-krbV"
@@ -14,23 +13,19 @@ SRC_URI="https://fedorahosted.org/python-krbV/raw-attachment/wiki/Releases/${P}.
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="~amd64 ~i386"
+KEYWORDS="~amd64 ~x86"
 IUSE=""
 
-DEPEND=""
-RDEPEND="${DEPEND}"
+RDEPEND=">=app-crypt/mit-krb5-1.2.2"
+DEPEND="${RDEPEND}
+	virtual/awk
+"
 
-pkg_setup() {
-    python_set_active_version 2
-    python_pkg_setup
-}
+DOCS=( README ChangeLog AUTHORS NEWS krbV-code-snippets.py )
 
 src_install() {
-    insinto $( python_get_sitedir )
-    doins .libs/krbVmodule.so
-    dodoc README ChangeLog AUTHORS NEWS krbV-code-snippets.py
-}
+	default
 
-pkg_postinst() {
-	python_need_rebuild
+	# Get rid of the .la files.
+	find "${D}" -name '*.la' -delete
 }
